@@ -3,17 +3,16 @@
 package main
 
 import (
+    "errors"
     "fmt"
 )
 
 type Token struct {
     Literal string
-    Kind    int
 }
 
 func (t Token) Stringer() string {
-    return fmt.Sprintf("<\"%s\" %d>",
-        t.Literal, t.Kind)
+    return fmt.Sprintf("<'%s'>", t.Literal)
 }
 
 type Lex struct {
@@ -67,13 +66,105 @@ func (l Lex) parse() Ast {
                     expr = ErExpr{}
                 }
             } else {
-                fmt.Println("PARSE: ", lit)
+                ast, err := setParam(&expr, Token{Literal: lit})
+                if err != nil {
+                    fmt.Println(err.Error())
+                    kind = 4
+                }
+                expr = ast
             }
             lit = ""
         }
         l.Pos++
     }
+    if err := verifyExpr(expr.(Ast)); err != nil {
+        fmt.Println(err.Error())
+        expr = ErExpr{}
+    }
     return expr.(Ast)
+}
+
+func setParam(expr *interface{}, tok Token) (Ast, error) {
+    switch (*expr).(type) {
+    case SeExpr:
+        seExpr := (*expr).(SeExpr)
+        if emptyValue(seExpr.Table) {
+            return SeExpr{
+                Table: tok,
+            }, nil
+        } else {
+            // FIELDS
+            seExpr.Fields = append(seExpr.Fields, tok)
+            return seExpr, nil
+        }
+    case GeExpr:
+        geExpr := (*expr).(GeExpr)
+        if emptyValue(geExpr.Table) {
+            return GeExpr{
+                Table: tok,
+            }, nil
+        } else {
+            // FROM
+            if emptyValue(geExpr.From) {
+                geExpr.From = tok
+                return geExpr, nil
+            }
+            // TO
+            if emptyValue(geExpr.To) {
+                geExpr.To = tok
+                return geExpr, nil
+            }
+            return ErExpr{}, errors.New("MORE PARAM SPECIFIED")
+        }
+    case UpExpr:
+        upExpr := (*expr).(UpExpr)
+        if emptyValue(upExpr.Table) {
+            return UpExpr{
+                Table: tok,
+            }, nil
+        } else {
+            // POS
+            if emptyValue(upExpr.Pos) {
+                upExpr.Pos = tok
+                return upExpr, nil
+            }
+            // NEW
+            if emptyValue(upExpr.New) {
+                upExpr.New = tok
+                return upExpr, nil
+            }
+            // VER
+            if emptyValue(upExpr.Ver) {
+                upExpr.Ver = tok
+                return upExpr, nil
+            }
+            return ErExpr{}, errors.New("MORE PARAM SPECIFIED")
+        }
+    case DeExpr:
+        deExpr := (*expr).(DeExpr)
+        if emptyValue(deExpr.Table) {
+            return DeExpr{
+                Table: tok,
+            }, nil
+        } else {
+            // POS
+            if emptyValue(deExpr.Pos) {
+                deExpr.Pos = tok
+                return deExpr, nil
+            }
+            // VER
+            if emptyValue(deExpr.Ver) {
+                deExpr.Ver = tok
+                return deExpr, nil
+            }
+            return ErExpr{}, errors.New("MORE PARAM SPECIFIED")
+        }
+    }
+    return ErExpr{}, errors.New("PROGRAM ERROR")
+}
+
+func emptyValue(t Token) bool {
+    return t.Literal == ""
 }
 
 func (l Lex) skipWhiteSpace() {
@@ -92,4 +183,46 @@ func (l Lex) now() byte {
 
 func (l Lex) end() bool {
     return l.Pos >= len(l.Src)
+}
+
+func verifyExpr(expr Ast) error {
+    switch expr.(type) {
+    case SeExpr:
+        seExpr := expr.(SeExpr)
+        if emptyValue(seExpr.Table) {
+            return errors.New("LOST TABLE")
+        }
+        if len(seExpr.Fields) == 0 {
+            return errors.New("LOST FIELDS")
+        }
+        return nil
+    case GeExpr:
+        geExpr := expr.(GeExpr)
+        if emptyValue(geExpr.Table) {
+            return errors.New("LOST TABLE")
+        }
+        return nil
+    case UpExpr:
+        upExpr := expr.(UpExpr)
+        if emptyValue(upExpr.Table) {
+            return errors.New("LOST TABLE")
+        }
+        if emptyValue(upExpr.Pos) {
+            return errors.New("LOST POSITION OF UPDATE LIMIT")
+        }
+        if emptyValue(upExpr.New) {
+            return errors.New("LOST NEW VALUE")
+        }
+        return nil
+    case DeExpr:
+        deExpr := expr.(DeExpr)
+        if emptyValue(deExpr.Table) {
+            return errors.New("LOST TABLE")
+        }
+        if emptyValue(deExpr.Pos) {
+            return errors.New("LOST POSITION OF DELETE LIMIT")
+        }
+        return nil
+    }
+    return nil
 }

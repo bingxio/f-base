@@ -28,8 +28,20 @@ type SeExpr struct {
 }
 
 func (s SeExpr) Stringer() string {
-    return fmt.Sprintf("SeExpr \n\tTable=%s \n\tFields=%x",
-        s.Table.Stringer(), s.Fields)
+    ele := func(l []Token) string {
+        lit := "["
+        for i := 0; i < len(l); i++ {
+            lit += l[i].Literal
+
+            if i+1 != len(l) {
+                lit += ", "
+            }
+        }
+        lit += "]"
+        return lit
+    }
+    return fmt.Sprintf("SeExpr \n\tTable=%s \n\tFields=%s",
+        s.Table.Stringer(), ele(s.Fields))
 }
 
 func (s SeExpr) Kind() int { return Se }
