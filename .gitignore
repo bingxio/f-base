@@ -1,0 +1,6 @@
+f-base
+.idea
+.vscode
+*.swp
+test.*
+TEST

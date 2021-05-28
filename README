@@ -1,0 +1,16 @@
+F-Base Minimalist database.
+
+Command:
+
+	LIKE INSERT: SE ? *<E>
+	     SELECT: GE ? | <F> | -> <T>
+	     UPDATE: UP ? <P> <N> [<V>]
+	     DELETE: DE ? <P> [<V>]
+
+Build:
+
+	> go build -ldflags -w .
+
+License:
+
+	GPL License 3.0 - bingxio <3106740988@qq.com>
