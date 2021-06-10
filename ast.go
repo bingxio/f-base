@@ -12,16 +12,17 @@ const (
 	Er        // ERROR
 )
 
+// Expr
 // SE ? *<E>
 // GE ? | <F> | -> <T>
 // UP ? <P> <N> [<V>]
 // DE ? <P> [<V>]
-type Ast interface {
+type Expr interface {
 	Stringer() string
 	Kind() int
 }
 
-// INSERT
+// SeExpr INSERT
 type SeExpr struct {
 	Table  Token
 	Fields []Token
@@ -46,7 +47,7 @@ func (s SeExpr) Stringer() string {
 
 func (s SeExpr) Kind() int { return Se }
 
-// SELECT
+// GeExpr SELECT
 type GeExpr struct {
 	Table Token
 	From  Token
@@ -60,7 +61,7 @@ func (g GeExpr) Stringer() string {
 
 func (g GeExpr) Kind() int { return Ge }
 
-// UPDATE
+// UpExpr UPDATE
 type UpExpr struct {
 	Table Token
 	Pos   Token
@@ -79,7 +80,7 @@ func (u UpExpr) Stringer() string {
 
 func (u UpExpr) Kind() int { return Up }
 
-// DELETE
+// DeExpr DELETE
 type DeExpr struct {
 	Table Token
 	Pos   Token
@@ -93,7 +94,7 @@ func (d DeExpr) Stringer() string {
 
 func (d DeExpr) Kind() int { return De }
 
-// ERROR
+// ErExpr ERROR
 type ErExpr struct{}
 
 func (e ErExpr) Stringer() string { return "ErExpr" }
