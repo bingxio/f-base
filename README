@@ -7,6 +7,8 @@ Command:
 	     UPDATE: UP ? <P> <N> [<V>]
 	     DELETE: DE ? <P> [<V>]
 
+	Type 'help' to show more information
+
 Build:
 
 	> go build -ldflags -w .
