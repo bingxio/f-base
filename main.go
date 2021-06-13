@@ -20,6 +20,21 @@ var (
   GlobalEm = Em{}                                    // Em
 )
 
+/*
+  Command   ->   Repl | Fork -> OS <-> Interface-driver
+                   |            |
+                   v           / - -                            Front-end
+  Stringer  <-    Ast         /    |
+                   |         /     |
+                   v <-  -  -      v
+                  Em(Table, Exec, Fork)                         Back-end
+                   |
+                   v
+   Result   <-    Tb(SE, GE, UP, DE) <- Row <-> {F-Tree}
+     |
+     v
+   Terminal | Driver --> END
+*/
 func main() {
   flag.Parse()
   arg := flag.Args()
