@@ -4,8 +4,8 @@ package main
 
 // Table : Each data table in the DB
 type Table struct {
-  name string
-  at   int
+	name string
+	at   int
 }
 
 // Insert : Perform the add operation
@@ -19,8 +19,8 @@ func (tb *Table) Update(p, n, v string) (uint64, error) { return 0, nil }
 
 // Delete : Perform the delete operation
 func (tb *Table) Delete(p, v string) error {
-  // TODO: When p is -1, delete the entire data table
-  return nil
+	// TODO: When p is -1, delete the entire data table
+	return nil
 }
 
 // Count : Return the count of data in the table
