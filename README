@@ -2,10 +2,10 @@ F-Base Minimalist database.
 
 Command:
 
-	LIKE INSERT: SE ? *<E>
-	     SELECT: GE ? | <F> | -> <T>
-	     UPDATE: UP ? <P> <N> [<V>]
-	     DELETE: DE ? <P> [<V>]
+	SE(se) ? *<E>
+	GE(ge) ? | <F> | -> <T>
+	UP(up) ? <P> <N> [<V>]
+	DE(de) ? <P> [<V>]
 
 	Type 'help' to show more information
 

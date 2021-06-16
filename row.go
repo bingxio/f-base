@@ -4,4 +4,5 @@ package main
 
 // Row : Row in table
 type Row struct {
+	Data [][20]byte
 }

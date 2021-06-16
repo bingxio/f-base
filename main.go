@@ -7,17 +7,16 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 )
 
 // Message : Prompt information of command line
 const Message = "F-Base v0.0.1 * MADE AT May 26 2021 18:06:35"
 
 var (
-	DbPath   = ""                                      // Database
-	DbFlag   = os.O_APPEND | os.O_CREATE | os.O_WRONLY // Open Flags
-	ForkMode = false                                   // Fork Mode
-	GlobalEm = Em{}                                    // Em
+	DbPath   = ""                                    // Database
+	DbFlag   = os.O_APPEND | os.O_CREATE | os.O_RDWR // Open Flags
+	ForkMode = false                                 // Fork Mode
+	GlobalEm = Em{}                                  // Em
 )
 
 /*
@@ -47,23 +46,22 @@ func main() {
 	}
 	ForkMode = len(arg) == 2 && arg[1] == "fork"
 	DbPath = arg[0]
-	f, err := os.OpenFile(DbPath, DbFlag, 0644) // Database File
+	f, err := os.OpenFile(DbPath, DbFlag, 0666) // Database File
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
 	// Em set
 	GlobalEm = Em{
-		db:     f.Name(),
-		file:   f,
-		tb:     nil,
-		opened: time.Now(),
-		fork:   ForkMode,
+		db:   f.Name(),
+		file: f,
+		tb:   nil,
+		fork: ForkMode,
 	}
-	// Load database tables
-	err = GlobalEm.LoadTB()
+	// Load database
+	err = GlobalEm.LoadDb()
 	if err != nil {
-		fmt.Println(err.Error())
+		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
 	// Fork mode
@@ -105,12 +103,13 @@ func repl() {
 		// 'help', 'exit', 'quit' and other special commands
 		if line == "help" {
 			usage()
-		} else if line == "table" {
+		} else if line == "tb" {
 			GlobalEm.Table()
 		} else if line == "license" {
 			license()
 		} else if line == "exit" || line == "quit" {
 			fmt.Println("bye")
+			GlobalEm.file.Close() // Close Db file
 			break
 		} else {
 			eval(line)
@@ -147,7 +146,7 @@ func usage() {
 	N -> N
 	V -> Verify
 
-	table       -> List of tables in the DB
+	tb          -> List of tables in the DB
 	exit | quit -> Exit the program
 	license     -> Show license
 	`)
