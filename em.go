@@ -37,10 +37,9 @@ func (e Em) Stringer(info string) string {
 func (e *Em) Table() {
 	for _, v := range e.tb {
 		fmt.Printf(
-			"<at: %-2d name: '%s' len: %d row: %-5d created: %s>\n",
+			"<at: %-2d name: '%s' row: %-3d created: %s>\n",
 			v.At,
 			v.Name,
-			v.Len,
 			v.Rows,
 			time.Unix(
 				int64(v.Created), 0).Format("2006.01.02 15:04"),
@@ -152,25 +151,79 @@ func (e *Em) NewTable(t Table) ([]byte, error) {
 		return nil, err
 	}
 	if b.Len() >= TableSize {
-		return nil, errors.New("size out of specification")
+		return nil, errors.New(SizeOut)
 	}
-	// b.Len() < 200
+	// 200
 	l := TableSize - b.Len()
-	_, err = e.file.Write(b.Bytes())
-	e.file.Write(make([]byte, l))
-	if err != nil {
-		return nil, err
-	}
+	b.Write(make([]byte, l))
 	return b.Bytes(), nil
+}
+
+// Exist : Data table exist
+func (e Em) Exist(name string) (int, bool) {
+	for i, v := range e.tb {
+		if bytes.Contains(v.Name[:], []byte(name)) {
+			return i, true
+		}
+	}
+	return -1, false
 }
 
 // ExecuteExpr : Execute command expression
 func (e *Em) ExecuteExpr(expr Expr) error {
-	if reflect.TypeOf(expr).Name() == "SeExpr" {
-		log.Println("will exec se expr")
+	switch reflect.TypeOf(expr).Name() {
+	case "SeExpr":
+		se := expr.(SeExpr)
+		i, exist := e.Exist(se.Table.Literal)
+		if !exist {
+			log.Println("create new tb", se.Table.Literal)
+			return nil
+		}
+		err := e.tb[i].Insert(func(f []Token) []string {
+			e := make([]string, len(f))
+			for _, v := range f {
+				e = append(e, v.Literal)
+			}
+			return e
+		}(se.F))
+		if err != nil {
+			return err
+		}
+	case "UpExpr":
+		up := expr.(UpExpr)
+		i, exist := e.Exist(up.Table.Literal)
+		if !exist {
+			return errors.New(NotExistTb)
+		}
+		_, err := e.tb[i].Update(
+			up.P.Literal, up.N.Literal, up.V.Literal)
+		if err != nil {
+			return err
+		}
+	case "DeExpr":
+		de := expr.(DeExpr)
+		i, exist := e.Exist(de.Table.Literal)
+		if !exist {
+			return errors.New(NotExistTb)
+		}
+		err := e.tb[i].Delete(de.P.Literal, de.V.Literal)
+		if err != nil {
+			return err
+		}
+	case "GeExpr":
+		ge := expr.(GeExpr)
+		i, exist := e.Exist(ge.Table.Literal)
+		if !exist {
+			return errors.New(NotExistTb)
+		}
+		rows, err := e.tb[i].Select(ge.F.Literal, ge.T.Literal)
+		if err != nil {
+			return err
+		}
+		for _, v := range rows {
+			fmt.Println(v.Stringer())
+		}
 	}
-	fmt.Println(expr.Stringer())
-	e.file.Seek(204, io.SeekStart)
 	return nil
 }
 
@@ -190,21 +243,18 @@ func (e *Em) testData() {
 		{
 			At:      1,
 			Name:    [20]byte{117, 115, 101, 114, 115},
-			Len:     6,
 			Created: uint32(time.Now().Unix()),
 			Rows:    89,
 		},
 		{
 			At:      2,
 			Name:    [20]byte{116, 111, 100, 111, 115},
-			Len:     8,
 			Created: uint32(time.Now().Unix()),
 			Rows:    144,
 		},
 		{
 			At:      3,
 			Name:    [20]byte{112, 97, 121, 101, 100},
-			Len:     2,
 			Created: uint32(time.Now().Unix()),
 			Rows:    99,
 		},
@@ -216,7 +266,25 @@ func (e *Em) testData() {
 		}
 		e.file.Write(b.Bytes())
 		e.file.Write(make([]byte, TableSize-b.Len()))
-		log.Println(b.Bytes(), b.Len(), b.Len()+200-b.Len())
+		log.Println(b.Bytes(), b.Len())
+		b.Reset()
+	}
+	r := []Row{
+		{
+			Data: []string{"12", "Bingxio", "123456"},
+		},
+		{
+			Data: []string{"13", "Turaiiao", "789101"},
+		},
+	}
+	for _, v := range r {
+		err = gob.NewEncoder(b).Encode(v)
+		if err != nil {
+			panic(err.Error())
+		}
+		e.file.Write(b.Bytes())
+		e.file.Write(make([]byte, RowSize-b.Len()))
+		log.Println(b.Bytes(), b.Len())
 		b.Reset()
 	}
 }
