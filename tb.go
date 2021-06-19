@@ -9,7 +9,7 @@ import (
 )
 
 // Maximum byte length of the structure
-const TableSize = 200
+const TableSize = 150
 
 // Table : Each data table in the DB
 type Table struct {

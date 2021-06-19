@@ -109,7 +109,7 @@ func repl() {
 			license()
 		} else if line == "exit" || line == "quit" {
 			fmt.Println("bye")
-			GlobalEm.file.Close() // Close Db file
+			_ = GlobalEm.file.Close() // Close Db file
 			break
 		} else {
 			eval(line)

@@ -9,7 +9,7 @@ import (
 )
 
 // Maximum byte length of the structure
-const RowSize = 400
+const RowSize = 100
 
 // Row : Row in table
 type Row struct {

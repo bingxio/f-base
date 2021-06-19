@@ -4,4 +4,5 @@ f-base.exe
 .vscode
 *.swp
 test.*
+t
 TEST

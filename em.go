@@ -15,7 +15,10 @@ import (
 	"time"
 )
 
-const port = 3742 // PORT of fork mode
+const (
+	port = 3742 // PORT of fork mode
+	tbs  = 4    // Length of bytes for table count
+)
 
 // Em : Global database manager
 type Em struct {
@@ -42,7 +45,7 @@ func (e *Em) Table() {
 			v.Name,
 			v.Rows,
 			time.Unix(
-				int64(v.Created), 0).Format("2006.01.02 15:04"),
+				int64(v.Created), 0).Format("2006/01/02 15:04"),
 		)
 	}
 }
@@ -104,7 +107,7 @@ func (e *Em) LoadDb() error {
 func (e Em) loadTbs() (uint8, error) {
 	e.file.Seek(0, io.SeekStart)
 	// Read
-	b := make([]byte, 4)
+	b := make([]byte, tbs)
 	_, err := e.file.Read(b)
 	if err != nil {
 		return 0, err
@@ -123,7 +126,7 @@ func (e Em) loadTbs() (uint8, error) {
 func (e *Em) loadTables(tbs uint8) error {
 	for tbs > 0 {
 		// Read
-		b := make([]byte, 200)
+		b := make([]byte, TableSize)
 		_, err := e.file.Read(b)
 		if err != nil {
 			return err
@@ -162,7 +165,20 @@ func (e *Em) NewTable(t Table) ([]byte, error) {
 // Exist : Data table exist
 func (e Em) Exist(name string) (int, bool) {
 	for i, v := range e.tb {
-		if bytes.Contains(v.Name[:], []byte(name)) {
+		if func(a, b []byte) bool {
+			for i := 0; i < len(b); {
+				// [124, 115, 154, 118, 175, 0, 0, 0, 0, 0]
+				// [124, 115, 154, 118]
+				if a[i] != b[i] {
+					return false
+				}
+				i++
+				if i == len(b) && i != len(a) {
+					return a[i] == 0
+				}
+			}
+			return true
+		}(v.Name[:], []byte(name)) {
 			return i, true
 		}
 	}
@@ -236,7 +252,7 @@ func (e *Em) testData() {
 		panic(err.Error())
 	}
 	e.file.Write(b.Bytes())
-	fmt.Println(b.Bytes(), b.Len())
+	fmt.Printf("Tbs: %p (%d)\n", b.Bytes(), b.Len())
 	// Table
 	b.Reset()
 	t := []Table{
@@ -266,7 +282,8 @@ func (e *Em) testData() {
 		}
 		e.file.Write(b.Bytes())
 		e.file.Write(make([]byte, TableSize-b.Len()))
-		log.Println(b.Bytes(), b.Len())
+		fmt.Printf("Table: %p (%d) >> %d\n",
+			b.Bytes(), b.Len(), b.Len()+(TableSize-b.Len()))
 		b.Reset()
 	}
 	r := []Row{
@@ -284,7 +301,14 @@ func (e *Em) testData() {
 		}
 		e.file.Write(b.Bytes())
 		e.file.Write(make([]byte, RowSize-b.Len()))
-		log.Println(b.Bytes(), b.Len())
+		fmt.Printf("Row: %p (%d) >> %d\n",
+			b.Bytes(), b.Len(), b.Len()+(RowSize-b.Len()))
 		b.Reset()
 	}
+	e.file.Seek(0, io.SeekStart)
+	// bs, err := ioutil.ReadAll(e.file)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(len(bs))
 }
