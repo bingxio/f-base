@@ -40,8 +40,7 @@ func (e Em) Stringer(info string) string {
 func (e *Em) Table() {
 	for _, v := range e.tb {
 		fmt.Printf(
-			"<at: %-2d name: '%s' row: %-3d created: %s>\n",
-			v.At,
+			"<name: '%s' row: %-3d created: %s>\n",
 			v.Name,
 			v.Rows,
 			time.Unix(
@@ -144,24 +143,6 @@ func (e *Em) loadTables(tbs uint8) error {
 	return nil
 }
 
-// NewTable : Store new table
-func (e *Em) NewTable(t Table) ([]byte, error) {
-	t.At = uint8(len(e.tb) + 1)
-	// Write
-	b := bytes.NewBuffer([]byte{})
-	err := gob.NewEncoder(b).Encode(t)
-	if err != nil {
-		return nil, err
-	}
-	if b.Len() >= TableSize {
-		return nil, errors.New(SizeOut)
-	}
-	// 200
-	l := TableSize - b.Len()
-	b.Write(make([]byte, l))
-	return b.Bytes(), nil
-}
-
 // Exist : Data table exist
 func (e Em) Exist(name string) (int, bool) {
 	for i, v := range e.tb {
@@ -257,19 +238,16 @@ func (e *Em) testData() {
 	b.Reset()
 	t := []Table{
 		{
-			At:      1,
 			Name:    [20]byte{117, 115, 101, 114, 115},
 			Created: uint32(time.Now().Unix()),
 			Rows:    89,
 		},
 		{
-			At:      2,
 			Name:    [20]byte{116, 111, 100, 111, 115},
 			Created: uint32(time.Now().Unix()),
 			Rows:    144,
 		},
 		{
-			At:      3,
 			Name:    [20]byte{112, 97, 121, 101, 100},
 			Created: uint32(time.Now().Unix()),
 			Rows:    99,

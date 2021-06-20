@@ -13,10 +13,10 @@ import (
 const Message = "F-Base v0.0.1 * MADE AT May 26 2021 18:06:35"
 
 var (
-	DbPath   = ""                                    // Database
-	DbFlag   = os.O_APPEND | os.O_CREATE | os.O_RDWR // Open Flags
-	ForkMode = false                                 // Fork Mode
-	GlobalEm = Em{}                                  // Em
+	DbPath   = ""                      // Database
+	DbFlag   = os.O_CREATE | os.O_RDWR // Open Flags
+	ForkMode = false                   // Fork Mode
+	GlobalEm = Em{}                    // Em
 )
 
 /*

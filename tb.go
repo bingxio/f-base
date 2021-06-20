@@ -4,6 +4,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 )
@@ -14,7 +15,6 @@ const TableSize = 150
 // Table : Each data table in the DB
 type Table struct {
 	Name    [20]byte
-	At      uint8
 	Created uint32
 	Rows    uint64 // Tbs + Table *? = Offset
 }
@@ -27,8 +27,8 @@ func (tb *Table) Insert(fields []string) error {
 
 // Select : Perform query operation
 func (tb *Table) Select(f, t string) ([]Row, error) {
-	rf := -1
-	rt := -1
+	rf := 0
+	rt := 0
 	// F
 	if f != "" {
 		i, err := strconv.Atoi(f)
@@ -45,10 +45,21 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 		}
 		rt = i
 	}
-	if rt != -1 && rt < rf {
+	if rt < rf || rt < 0 || rf < 0 {
 		return nil, errors.New(IndexRange)
 	}
-	log.Println(rf, rt)
+	// All
+	if rf == 0 && rt == 0 {
+		fmt.Println("select all")
+	}
+	// One
+	if rf != 0 && rt == 0 {
+		fmt.Println("select one")
+	}
+	// Range
+	if rf != 0 && rt != 0 {
+		fmt.Println("select range")
+	}
 	return nil, nil
 }
 
@@ -62,6 +73,9 @@ func (tb *Table) Update(p, n, v string) (uint64, error) {
 			return 0, errors.New(IntOffset)
 		}
 		rp = i
+	}
+	if rp <= 0 {
+		return 0, errors.New(IndexRange)
 	}
 	log.Println(rp)
 	return 0, nil
