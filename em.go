@@ -32,7 +32,24 @@ type Em struct {
 func (e Em) Stringer(info string) string {
 	b := strings.Builder{}
 	b.WriteString(fmt.Sprintf("Db: '%s' %sB\n", e.db, info))
-	b.WriteString(fmt.Sprintf("Tb: %v", e.TableString()))
+	b.WriteString(fmt.Sprintf("Tb: %v", func() []string {
+		t := []string{}
+		// Append the string literal for table name
+		for i := 0; i < len(e.tb); i++ {
+			t = append(t, func() string {
+				n := e.tb[i].Name
+				s := fmt.Sprintf("%d: '", i+1)
+				for i := 0; i < len(n); i++ {
+					if n[i] != 0 {
+						s += string(n[i])
+					}
+				}
+				s += "'"
+				return s
+			}())
+		}
+		return t
+	}()))
 	return b.String()
 }
 
@@ -40,28 +57,21 @@ func (e Em) Stringer(info string) string {
 func (e *Em) Table() {
 	for _, v := range e.tb {
 		fmt.Printf(
-			"<name: '%s' row: %-3d created: %s>\n",
-			v.Name,
-			v.Rows,
+			"<name: '%s' row: %-4d created: %s>\n",
+			func(b [20]byte) string {
+				s := ""
+				for i := 0; i < len(b); i++ {
+					if b[i] != 0 {
+						s += string(b[i])
+					}
+				}
+				return s
+			}(v.Name),
+			v.To-v.From,
 			time.Unix(
 				int64(v.Created), 0).Format("2006/01/02 15:04"),
 		)
 	}
-}
-
-// TableString : Return a slice of names
-func (e Em) TableString() string {
-	s := "["
-	l := len(e.tb)
-	for i := 0; i < l; i++ {
-		s += fmt.Sprintf("%d: '%s'",
-			i+1, string(e.tb[i].Name[:]))
-		if i+1 != l {
-			s += " "
-		}
-	}
-	s += "]"
-	return s
 }
 
 // CountTable : Return the count of tables in the DB
@@ -228,29 +238,29 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 func (e *Em) testData() {
 	// Tbs
 	b := bytes.NewBuffer([]byte{})
-	err := gob.NewEncoder(b).Encode(uint8(3))
+	err := gob.NewEncoder(b).Encode(uint8(2))
 	if err != nil {
 		panic(err.Error())
 	}
 	e.file.Write(b.Bytes())
 	fmt.Printf("Tbs: %p (%d)\n", b.Bytes(), b.Len())
 	// Table
+	//
+	// 4B + Tbs * TableSize + Rows * RowSize
+	//
 	b.Reset()
 	t := []Table{
 		{
 			Name:    [20]byte{117, 115, 101, 114, 115},
 			Created: uint32(time.Now().Unix()),
-			Rows:    89,
+			From:    43,
+			To:      863,
 		},
 		{
 			Name:    [20]byte{116, 111, 100, 111, 115},
 			Created: uint32(time.Now().Unix()),
-			Rows:    144,
-		},
-		{
-			Name:    [20]byte{112, 97, 121, 101, 100},
-			Created: uint32(time.Now().Unix()),
-			Rows:    99,
+			From:    864,
+			To:      924,
 		},
 	}
 	for _, v := range t {

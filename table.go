@@ -16,12 +16,13 @@ const TableSize = 150
 type Table struct {
 	Name    [20]byte
 	Created uint32
-	Rows    uint64 // Tbs + Table *? = Offset
+	From    uint64
+	Rows    uint64
+	At      uint8
 }
 
 // Insert : Perform the add operation
 func (tb *Table) Insert(fields []string) error {
-	tb.Rows++
 	return nil
 }
 
@@ -45,9 +46,6 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 		}
 		rt = i
 	}
-	if rt < rf || rt < 0 || rf < 0 {
-		return nil, errors.New(IndexRange)
-	}
 	// All
 	if rf == 0 && rt == 0 {
 		fmt.Println("select all")
@@ -55,6 +53,9 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 	// One
 	if rf != 0 && rt == 0 {
 		fmt.Println("select one")
+	}
+	if rt != 0 && rf > rt {
+		return nil, errors.New(IndexRange)
 	}
 	// Range
 	if rf != 0 && rt != 0 {
