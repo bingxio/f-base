@@ -57,7 +57,7 @@ func (e Em) Stringer(info string) string {
 func (e *Em) Table() {
 	for _, v := range e.tb {
 		fmt.Printf(
-			"<name: '%s' row: %-4d created: %s>\n",
+			"<name: '%s' row: %-4d create: %s>\n",
 			func(b [20]byte) string {
 				s := ""
 				for i := 0; i < len(b); i++ {
@@ -67,7 +67,7 @@ func (e *Em) Table() {
 				}
 				return s
 			}(v.Name),
-			v.To-v.From,
+			v.Rows,
 			time.Unix(
 				int64(v.Created), 0).Format("2006/01/02 15:04"),
 		)
@@ -254,13 +254,15 @@ func (e *Em) testData() {
 			Name:    [20]byte{117, 115, 101, 114, 115},
 			Created: uint32(time.Now().Unix()),
 			From:    43,
-			To:      863,
+			Rows:    863,
+			At:      1,
 		},
 		{
 			Name:    [20]byte{116, 111, 100, 111, 115},
 			Created: uint32(time.Now().Unix()),
 			From:    864,
-			To:      924,
+			Rows:    924,
+			At:      2,
 		},
 	}
 	for _, v := range t {
@@ -294,9 +296,4 @@ func (e *Em) testData() {
 		b.Reset()
 	}
 	e.file.Seek(0, io.SeekStart)
-	// bs, err := ioutil.ReadAll(e.file)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(len(bs))
 }
