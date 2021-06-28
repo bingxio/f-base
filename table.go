@@ -34,7 +34,7 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 	if f != "" {
 		i, err := strconv.Atoi(f)
 		if err != nil {
-			return nil, errors.New(IntOffset)
+			return nil, errors.New("need receive integer offset")
 		}
 		rf = i
 	}
@@ -42,7 +42,7 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 	if t != "" {
 		i, err := strconv.Atoi(t)
 		if err != nil {
-			return nil, errors.New(IntOffset)
+			return nil, errors.New("need receive integer offset")
 		}
 		rt = i
 	}
@@ -55,7 +55,7 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 		fmt.Println("select one")
 	}
 	if rt != 0 && rf > rt {
-		return nil, errors.New(IndexRange)
+		return nil, errors.New("index range")
 	}
 	// Range
 	if rf != 0 && rt != 0 {
@@ -71,12 +71,12 @@ func (tb *Table) Update(p, n, v string) (uint64, error) {
 	if p != "" {
 		i, err := strconv.Atoi(p)
 		if err != nil {
-			return 0, errors.New(IntOffset)
+			return 0, errors.New("need receive integer offset")
 		}
 		rp = i
 	}
 	if rp <= 0 {
-		return 0, errors.New(IndexRange)
+		return 0, errors.New("index range")
 	}
 	log.Println(rp)
 	return 0, nil
@@ -93,7 +93,7 @@ func (tb *Table) Delete(p, v string) error {
 	if p != "" {
 		i, err := strconv.Atoi(p)
 		if err != nil {
-			return errors.New(IntOffset)
+			return errors.New("need receive integer offset")
 		}
 		rp = i
 	}

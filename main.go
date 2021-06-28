@@ -7,6 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 // Message : Prompt information of command line
@@ -41,7 +43,7 @@ func main() {
 	// Must access the location
 	// of the database file
 	if len(arg) < 1 {
-		_, _ = fmt.Fprintln(os.Stderr, "LOST DATABASE SPECIFIED")
+		_, _ = fmt.Fprintln(os.Stderr, "lost database specified")
 		return
 	}
 	ForkMode = len(arg) == 2 && arg[1] == "fork"
@@ -75,8 +77,16 @@ func main() {
 // Read Prompt-Line Loop
 func repl() {
 	fmt.Println(Message)
-	// fmt.Printf("DB: '%s' %s\n", DbPath, dbInfo())
 	fmt.Println(GlobalEm.Stringer(dbInfo()))
+
+	c := make(chan os.Signal, 1)
+	// Ctrl+C or KILL
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		for range c {
+			fmt.Printf("\nuse 'exit' or 'quit' command\n> ")
+		}
+	}()
 
 	buf := bufio.NewReader(os.Stdin)
 	for {
@@ -108,9 +118,16 @@ func repl() {
 		} else if line == "license" {
 			license()
 		} else if line == "exit" || line == "quit" {
+			err := QuitMemory()
+
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err.Error())
+				continue
+			}
 			fmt.Println("bye")
-			_ = GlobalEm.file.Close() // Close Db file
 			break
+		} else if line == "p" {
+			GlobalMem.Dissemble()
 		} else {
 			eval(line)
 		}
@@ -132,9 +149,7 @@ func eval(src string) {
 
 // 'help' command to print usage information
 func usage() {
-	fmt.Println(
-		`
-	SE(se) ? *<E>		-> Insert
+	fmt.Println(`	SE(se) ? *<E>		-> Insert
 	GE(ge) ? | <F> | -> <T>	-> Select
 	UP(up) ? <P> <N> [<V>]	-> Update
 	DE(de) ? <P> [<V>]	-> Delete
@@ -149,7 +164,7 @@ func usage() {
 	tb          -> List of tables in the DB
 	exit | quit -> Exit the program
 	license     -> Show license
-	`)
+	p           -> Dissemble trees`)
 }
 
 // Return the size of the data file

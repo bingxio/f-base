@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -32,24 +33,17 @@ type Em struct {
 func (e Em) Stringer(info string) string {
 	b := strings.Builder{}
 	b.WriteString(fmt.Sprintf("Db: '%s' %sB\n", e.db, info))
-	b.WriteString(fmt.Sprintf("Tb: %v", func() []string {
-		t := []string{}
-		// Append the string literal for table name
+	b.WriteString("Tb: \n")
+	b.WriteString(func() string {
+		l := ""
 		for i := 0; i < len(e.tb); i++ {
-			t = append(t, func() string {
-				n := e.tb[i].Name
-				s := fmt.Sprintf("%d: '", i+1)
-				for i := 0; i < len(n); i++ {
-					if n[i] != 0 {
-						s += string(n[i])
-					}
-				}
-				s += "'"
-				return s
-			}())
+			l += fmt.Sprintf("\t%d: '%s'", e.tb[i].At, e.tb[i].Name[:])
+			if i+1 != len(e.tb) {
+				l += "\n"
+			}
 		}
-		return t
-	}()))
+		return l
+	}())
 	return b.String()
 }
 
@@ -109,6 +103,7 @@ func (e *Em) LoadDb() error {
 	if err != nil {
 		return err
 	}
+	NewMemory(*e) // To Memory
 	return nil
 }
 
@@ -200,7 +195,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		up := expr.(UpExpr)
 		i, exist := e.Exist(up.Table.Literal)
 		if !exist {
-			return errors.New(NotExistTb)
+			return errors.New("table does not exist")
 		}
 		_, err := e.tb[i].Update(
 			up.P.Literal, up.N.Literal, up.V.Literal)
@@ -211,7 +206,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		de := expr.(DeExpr)
 		i, exist := e.Exist(de.Table.Literal)
 		if !exist {
-			return errors.New(NotExistTb)
+			return errors.New("table does not exist")
 		}
 		err := e.tb[i].Delete(de.P.Literal, de.V.Literal)
 		if err != nil {
@@ -221,7 +216,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		ge := expr.(GeExpr)
 		i, exist := e.Exist(ge.Table.Literal)
 		if !exist {
-			return errors.New(NotExistTb)
+			return errors.New("table does not exist")
 		}
 		rows, err := e.tb[i].Select(ge.F.Literal, ge.T.Literal)
 		if err != nil {
@@ -246,22 +241,20 @@ func (e *Em) testData() {
 	fmt.Printf("Tbs: %p (%d)\n", b.Bytes(), b.Len())
 	// Table
 	//
-	// 4B + Tbs * TableSize + Rows * RowSize
-	//
 	b.Reset()
 	t := []Table{
 		{
 			Name:    [20]byte{117, 115, 101, 114, 115},
 			Created: uint32(time.Now().Unix()),
-			From:    43,
-			Rows:    863,
+			From:    304, // 4 + 150*2
+			Rows:    522,
 			At:      1,
 		},
 		{
 			Name:    [20]byte{116, 111, 100, 111, 115},
 			Created: uint32(time.Now().Unix()),
-			From:    864,
-			Rows:    924,
+			From:    52504, // 4 + 150*2 + 100*522
+			Rows:    143,
 			At:      2,
 		},
 	}
@@ -277,22 +270,60 @@ func (e *Em) testData() {
 		b.Reset()
 	}
 	r := []Row{
-		{
-			Data: []string{"12", "Bingxio", "123456"},
-		},
-		{
-			Data: []string{"13", "Turaiiao", "789101"},
-		},
+		// {
+		// 	Data: []string{"1", "User1", "123456"},
+		// },
+		// {
+		// 	Data: []string{"2", "User2", "123456"},
+		// },
+		// {
+		// 	Data: []string{"3", "User3", "123456"},
+		// },
+		// {
+		// 	Data: []string{"4", "User4", "123456"},
+		// },
+		// {
+		// 	Data: []string{"5", "User5", "123456"},
+		// },
+		// {
+		// 	Data: []string{"1", "Order1", "789101"},
+		// },
+		// {
+		// 	Data: []string{"2", "Order2", "789101"},
+		// },
+		// {
+		// 	Data: []string{"3", "Order3", "789101"},
+		// },
+		// {
+		// 	Data: []string{"4", "Order4", "789101"},
+		// },
+		// {
+		// 	Data: []string{"5", "Order5", "789101"},
+		// },
+		// {
+		// 	Data: []string{"6", "Order6", "789101"},
+		// },
+		// {
+		// 	Data: []string{"7", "Order7", "789101"},
+		// },
+		// {
+		// 	Data: []string{"8", "Order8", "789101"},
+		// },
 	}
-	for _, v := range r {
+	for i := 0; i < 665; i++ {
+		r = append(r, Row{
+			Data: []string{strconv.Itoa(i), "test", "what's up"},
+		})
+	}
+	for k, v := range r {
 		err = gob.NewEncoder(b).Encode(v)
 		if err != nil {
 			panic(err.Error())
 		}
 		e.file.Write(b.Bytes())
 		e.file.Write(make([]byte, RowSize-b.Len()))
-		fmt.Printf("Row: %p (%d) >> %d\n",
-			b.Bytes(), b.Len(), b.Len()+(RowSize-b.Len()))
+		fmt.Printf("Row(%d): %p (%d) >> %d\n",
+			k+1, b.Bytes(), b.Len(), b.Len()+(RowSize-b.Len()))
 		b.Reset()
 	}
 	e.file.Seek(0, io.SeekStart)

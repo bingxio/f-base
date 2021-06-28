@@ -70,7 +70,7 @@ func (l Lex) parse() Expr {
 					expr = DeExpr{}
 				default:
 					fmt.Printf(
-						"UNKNOWN COMMAND PREFIX: '%s'\n",
+						"unknown command prefix '%s'\n",
 						lit,
 					)
 					kind = 4
@@ -130,7 +130,7 @@ func setParam(expr *interface{}, tok Token) (Expr, error) {
 				geExpr.T = tok
 				return geExpr, nil
 			}
-			return ErExpr{}, errors.New("MORE PARAM SPECIFIED")
+			return ErExpr{}, errors.New("more param specified")
 		}
 	case UpExpr:
 		upExpr := (*expr).(UpExpr)
@@ -154,7 +154,7 @@ func setParam(expr *interface{}, tok Token) (Expr, error) {
 				upExpr.V = tok
 				return upExpr, nil
 			}
-			return ErExpr{}, errors.New("MORE PARAM SPECIFIED")
+			return ErExpr{}, errors.New("more param specified")
 		}
 	case DeExpr:
 		deExpr := (*expr).(DeExpr)
@@ -173,10 +173,10 @@ func setParam(expr *interface{}, tok Token) (Expr, error) {
 				deExpr.V = tok
 				return deExpr, nil
 			}
-			return ErExpr{}, errors.New("MORE PARAM SPECIFIED")
+			return ErExpr{}, errors.New("more param specified")
 		}
 	}
-	return ErExpr{}, errors.New("PROGRAM ERROR")
+	return nil, nil
 }
 
 // Default token literal is empty
@@ -213,37 +213,37 @@ func verifyExpr(expr Expr) error {
 	case "SeExpr":
 		seExpr := expr.(SeExpr)
 		if emptyValue(seExpr.Table) {
-			return errors.New("LOST TABLE")
+			return errors.New("lost table")
 		}
 		if len(seExpr.F) == 0 {
-			return errors.New("LOST FIELDS")
+			return errors.New("lost fields")
 		}
 		return nil
 	case "GeExpr":
 		geExpr := expr.(GeExpr)
 		if emptyValue(geExpr.Table) {
-			return errors.New("LOST TABLE")
+			return errors.New("lost table")
 		}
 		return nil
 	case "UpExpr":
 		upExpr := expr.(UpExpr)
 		if emptyValue(upExpr.Table) {
-			return errors.New("LOST TABLE")
+			return errors.New("lost table")
 		}
 		if emptyValue(upExpr.P) {
-			return errors.New("LOST POSITION OF UPDATE LIMIT")
+			return errors.New("lost position of update limit")
 		}
 		if emptyValue(upExpr.N) {
-			return errors.New("LOST NEW VALUE")
+			return errors.New("lost new value")
 		}
 		return nil
 	case "DeExpr":
 		deExpr := expr.(DeExpr)
 		if emptyValue(deExpr.Table) {
-			return errors.New("LOST TABLE")
+			return errors.New("lost table")
 		}
 		if emptyValue(deExpr.P) {
-			return errors.New("LOST POSITION OF DELETE LIMIT")
+			return errors.New("lost position of delete limit")
 		}
 		return nil
 	}

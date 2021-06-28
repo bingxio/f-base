@@ -5,46 +5,104 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"errors"
 	"fmt"
 )
 
-// UpdateTbs : Update the number of tables in memory
-func UpdateTbs(n uint8) error {
-	b := make([]byte, tbs)
-	err := gob.NewEncoder(bytes.NewBuffer(b)).Encode(n)
-	if err != nil {
-		return err
+var (
+	GlobalMem Memory // Mem
+)
+
+/*
+	Read Tbs
+		|
+		v
+	Read Tables
+		|
+		v
+  Memory(Buffer)
+		|
+		v
+		G
+*/
+type Memory struct {
+	Tbs  uint    // Count of tbs
+	Tb   []Table // Simple table
+	Tree []Tree  // Trees of each table rows
+}
+
+// Dissemble : Dis
+func (m Memory) Dissemble() {
+	for _, v := range m.Tree {
+		fmt.Println(v.Stringer())
 	}
-	c, err := GlobalEm.file.WriteAt(b, 0)
-	if err != nil {
-		return err
-	}
-	// Empty
-	if c == 0 {
-		return errors.New(WriteFile)
+}
+
+// NewMemory : To new memory with em and bytes buffer
+func NewMemory(em Em) error {
+	GlobalMem.Tbs = uint(len(em.tb))
+	GlobalMem.Tb = em.tb
+
+	rows := []Row{}
+
+	// Buf
+	for i := 0; i < len(em.tb); i++ {
+		t := em.tb[i]
+		p := t.From
+		// Read rows
+		for j := 0; j < int(t.Rows); j++ {
+			r, err := ReadRow(int64(p))
+			if err != nil {
+				return err
+			}
+			// Push
+			rows = append(rows, *r)
+			p += RowSize
+		}
+		// Tree
+		l := len(rows)
+		if l > 100 {
+			// Many Leaf
+			fmt.Println(l, float64(l)/3)
+		} else {
+			// One Leaf, One Node
+			GlobalMem.Tree = append(GlobalMem.Tree, Tree{
+				Node: []Node{
+					{
+						Leaf: []Leaf{
+							{
+								Data: rows,
+							},
+						},
+					},
+				},
+			})
+		}
+		// Clear
+		rows = rows[:0]
 	}
 	return nil
 }
 
-// UpdateTable : Update table in memory
-func UpdateTable(at int64, n Table) error {
-	offset := tbs + at*TableSize
-	fmt.Println(offset)
-	b := bytes.NewBuffer([]byte{})
-	err := gob.NewEncoder(b).Encode(n)
+// ReadRow : Read bytes to row structure
+func ReadRow(p int64) (*Row, error) {
+	b := make([]byte, RowSize)
+	_, err := GlobalEm.file.ReadAt(b, p)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	b.Write(make([]byte, TableSize-b.Len()))
-	c, err := GlobalEm.file.WriteAt(b.Bytes(), offset)
+	r := Row{}
+	err = gob.NewDecoder(
+		bytes.NewBuffer(b)).Decode(&r)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	// Empty
-	if c == 0 {
-		return errors.New(WriteFile)
-	}
+	return &r, nil
+}
+
+// QuitMemory : Clean cache and save buffer to file
+func QuitMemory() error {
+	// Close file
+	GlobalEm.file.Close()
 	return nil
 }
 

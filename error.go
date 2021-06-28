@@ -3,10 +3,10 @@
 package main
 
 // Errors
-var (
-	NotExistTb = "table does not exist"
-	IntOffset  = "need to receive integer offset"
-	IndexRange = "index range error"
-	SizeOut    = "size out of specification"
-	WriteFile  = "Failed to write file"
-)
+// var (
+// 	NotExistTb = "table does not exist"
+// 	IntOffset  = "need to receive integer offset"
+// 	IndexRange = "index range error"
+// 	SizeOut    = "size out of specification"
+// 	WriteFile  = "Failed to write file"
+// )

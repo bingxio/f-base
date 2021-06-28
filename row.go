@@ -23,7 +23,7 @@ func NewRow(data []string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// 400
+	// 100
 	l := RowSize - b.Len()
 	b.Write(make([]byte, l))
 	return b.Bytes(), nil
