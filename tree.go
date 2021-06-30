@@ -2,7 +2,9 @@
 // GPL 3.0 License - bingxio <3106740988@qq.com>
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 /*
 	Tree Structure:
@@ -43,10 +45,26 @@ type Node struct {
 
 // Leaf
 type Leaf struct {
-	Data []Row
+	Data [][]Row
 }
 
 // Stringer : For tree
-func (t Tree) Stringer() string {
-	return fmt.Sprintf("<tree: %d node>", len(t.Node))
+func (t Tree) Stringer(p int) string {
+	x := 0
+	y := 0
+	func() {
+		for _, v := range t.Node {
+			x += len(v.Leaf)
+			for _, b := range v.Leaf {
+				y += len(b.Data)
+			}
+		}
+	}()
+	return fmt.Sprintf(
+		"name: '%s' node: %d leaf: %d rows: %d",
+		GlobalEm.tb[p].Name,
+		len(t.Node),
+		x,
+		y,
+	)
 }

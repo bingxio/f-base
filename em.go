@@ -51,7 +51,7 @@ func (e Em) Stringer(info string) string {
 func (e *Em) Table() {
 	for _, v := range e.tb {
 		fmt.Printf(
-			"<name: '%s' row: %-4d create: %s>\n",
+			"name: '%s' row: %-4d - %s\n",
 			func(b [20]byte) string {
 				s := ""
 				for i := 0; i < len(b); i++ {
@@ -63,7 +63,7 @@ func (e *Em) Table() {
 			}(v.Name),
 			v.Rows,
 			time.Unix(
-				int64(v.Created), 0).Format("2006/01/02 15:04"),
+				int64(v.Created), 0).Format("2006/01/02 15:04:05"),
 		)
 	}
 }
@@ -238,7 +238,7 @@ func (e *Em) testData() {
 		panic(err.Error())
 	}
 	e.file.Write(b.Bytes())
-	fmt.Printf("Tbs: %p (%d)\n", b.Bytes(), b.Len())
+	// fmt.Printf("Tbs: %p (%d)\n", b.Bytes(), b.Len())
 	// Table
 	//
 	b.Reset()
@@ -247,14 +247,14 @@ func (e *Em) testData() {
 			Name:    [20]byte{117, 115, 101, 114, 115},
 			Created: uint32(time.Now().Unix()),
 			From:    304, // 4 + 150*2
-			Rows:    522,
+			Rows:    6525,
 			At:      1,
 		},
 		{
 			Name:    [20]byte{116, 111, 100, 111, 115},
 			Created: uint32(time.Now().Unix()),
-			From:    52504, // 4 + 150*2 + 100*522
-			Rows:    143,
+			From:    652804, // 4 + 150*2 + 100*6525
+			Rows:    9411,
 			At:      2,
 		},
 	}
@@ -265,65 +265,25 @@ func (e *Em) testData() {
 		}
 		e.file.Write(b.Bytes())
 		e.file.Write(make([]byte, TableSize-b.Len()))
-		fmt.Printf("Table: %p (%d) >> %d\n",
-			b.Bytes(), b.Len(), b.Len()+(TableSize-b.Len()))
+		// fmt.Printf("Table: %p (%d) >> %d\n",
+		// 	b.Bytes(), b.Len(), b.Len()+(TableSize-b.Len()))
 		b.Reset()
 	}
-	r := []Row{
-		// {
-		// 	Data: []string{"1", "User1", "123456"},
-		// },
-		// {
-		// 	Data: []string{"2", "User2", "123456"},
-		// },
-		// {
-		// 	Data: []string{"3", "User3", "123456"},
-		// },
-		// {
-		// 	Data: []string{"4", "User4", "123456"},
-		// },
-		// {
-		// 	Data: []string{"5", "User5", "123456"},
-		// },
-		// {
-		// 	Data: []string{"1", "Order1", "789101"},
-		// },
-		// {
-		// 	Data: []string{"2", "Order2", "789101"},
-		// },
-		// {
-		// 	Data: []string{"3", "Order3", "789101"},
-		// },
-		// {
-		// 	Data: []string{"4", "Order4", "789101"},
-		// },
-		// {
-		// 	Data: []string{"5", "Order5", "789101"},
-		// },
-		// {
-		// 	Data: []string{"6", "Order6", "789101"},
-		// },
-		// {
-		// 	Data: []string{"7", "Order7", "789101"},
-		// },
-		// {
-		// 	Data: []string{"8", "Order8", "789101"},
-		// },
-	}
-	for i := 0; i < 665; i++ {
+	r := []Row{}
+	for i := 0; i < 15936; i++ {
 		r = append(r, Row{
 			Data: []string{strconv.Itoa(i), "test", "what's up"},
 		})
 	}
-	for k, v := range r {
+	for _, v := range r {
 		err = gob.NewEncoder(b).Encode(v)
 		if err != nil {
 			panic(err.Error())
 		}
 		e.file.Write(b.Bytes())
 		e.file.Write(make([]byte, RowSize-b.Len()))
-		fmt.Printf("Row(%d): %p (%d) >> %d\n",
-			k+1, b.Bytes(), b.Len(), b.Len()+(RowSize-b.Len()))
+		// fmt.Printf("Row(%d): %p (%d) >> %d\n",
+		// 	k+1, b.Bytes(), b.Len(), b.Len()+(RowSize-b.Len()))
 		b.Reset()
 	}
 	e.file.Seek(0, io.SeekStart)

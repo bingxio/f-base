@@ -113,7 +113,7 @@ func repl() {
 		// 'help', 'exit', 'quit' and other special commands
 		if line == "help" {
 			usage()
-		} else if line == "tb" {
+		} else if line == "t" {
 			GlobalEm.Table()
 		} else if line == "license" {
 			license()
@@ -161,7 +161,7 @@ func usage() {
 	N -> N
 	V -> Verify
 
-	tb          -> List of tables in the DB
+	t           -> List of tables in the DB
 	exit | quit -> Exit the program
 	license     -> Show license
 	p           -> Dissemble trees`)

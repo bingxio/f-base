@@ -49,17 +49,17 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 	// All
 	if rf == 0 && rt == 0 {
 		fmt.Println("select all")
-	}
-	// One
-	if rf != 0 && rt == 0 {
-		fmt.Println("select one")
-	}
-	if rt != 0 && rf > rt {
-		return nil, errors.New("index range")
-	}
-	// Range
-	if rf != 0 && rt != 0 {
-		fmt.Println("select range")
+	} else {
+		// One
+		if rf != 0 && rt == 0 {
+			fmt.Println("select one")
+		} else {
+			if rt != 0 && rf > rt {
+				return nil, errors.New("index limit exceeded")
+			}
+			// Range
+			fmt.Println("select range")
+		}
 	}
 	return nil, nil
 }

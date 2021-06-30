@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -32,8 +33,12 @@ type Memory struct {
 
 // Dissemble : Dis
 func (m Memory) Dissemble() {
-	for _, v := range m.Tree {
-		fmt.Println(v.Stringer())
+	if len(m.Tree) == 0 {
+		fmt.Println("<empty tree>")
+	} else {
+		for k, v := range m.Tree {
+			fmt.Println(v.Stringer(k))
+		}
 	}
 }
 
@@ -61,8 +66,65 @@ func NewMemory(em Em) error {
 		// Tree
 		l := len(rows)
 		if l > 100 {
-			// Many Leaf
-			fmt.Println(l, float64(l)/3)
+			// Row
+			row := DecimalPlaces(float64(l), 100)
+			// Leaf
+			leaf := DecimalPlaces(float64(row), 3)
+			// Node
+			node := DecimalPlaces(float64(leaf), 5)
+
+			// log.Printf("- %d rows: %d leaf: %d node: %d\n", l, row, leaf, node)
+			// R
+			tr := make([][]Row, row)
+			tp := 0
+			for p := 100; p <= row*100; p += 100 {
+				if p > l {
+					tr[tp] = rows[p-100:]
+				} else {
+					tr[tp] = rows[p-100 : p]
+				}
+				tp += 1
+			}
+			// L
+			tl := []Leaf{}
+			tp = 0
+			for p := 0; p < leaf; p++ {
+				if (tp + 3) > len(tr) {
+					r := [][]Row{}
+					for i := tp; i < len(tr); i++ {
+						r = append(r, tr[i])
+						tp++
+					}
+					tl = append(tl, Leaf{r})
+				} else {
+					tl = append(tl, Leaf{
+						Data: [][]Row{tr[tp], tr[tp+1], tr[tp+2]}, // 3
+					})
+					tp += 3
+				}
+			}
+			// N
+			tn := []Node{}
+			tp = 0
+			for p := 0; p < node; p++ {
+				if (tp + 5) > len(tl) {
+					r := []Leaf{}
+					for i := tp; i < len(tl); i++ {
+						r = append(r, tl[i])
+						tp++
+					}
+					tn = append(tn, Node{r})
+				} else {
+					tn = append(tn, Node{
+						Leaf: []Leaf{
+							tl[tp], tl[tp+1], tl[tp+2], tl[tp+3], tl[tp+4], // 5
+						},
+					})
+					tp += 5
+				}
+			}
+			// T
+			GlobalMem.Tree = append(GlobalMem.Tree, Tree{tn})
 		} else {
 			// One Leaf, One Node
 			GlobalMem.Tree = append(GlobalMem.Tree, Tree{
@@ -70,7 +132,9 @@ func NewMemory(em Em) error {
 					{
 						Leaf: []Leaf{
 							{
-								Data: rows,
+								Data: [][]Row{
+									rows,
+								},
 							},
 						},
 					},
@@ -104,6 +168,18 @@ func QuitMemory() error {
 	// Close file
 	GlobalEm.file.Close()
 	return nil
+}
+
+// DecimalPlaces : Add decimal spaces, 34.24555 -> 35
+func DecimalPlaces(raw, to float64) int {
+	n := raw / to
+	nf := fmt.Sprintf("%f", n)
+	r := int(n)
+	// Add
+	if nf[strings.IndexRune(nf, '.')+1] != '0' {
+		r += 1
+	}
+	return r
 }
 
 // InsertRow : Insert row at specified location
