@@ -36,7 +36,7 @@ func (m Memory) Dissemble() {
 	if len(m.Tree) == 0 {
 		fmt.Println("<empty tree>")
 	} else {
-		for k, v := range m.Tree {
+		for k, v := range m.Tree { // Stringer
 			fmt.Println(v.Stringer(k))
 		}
 	}
@@ -49,33 +49,26 @@ func NewMemory(em Em) error {
 
 	rows := []Row{}
 
-	// Buf
-	for i := 0; i < len(em.tb); i++ {
+	for i := 0; i < len(em.tb); i++ { // Buf
 		t := em.tb[i]
 		p := t.From
-		// Read rows
-		for j := 0; j < int(t.Rows); j++ {
+		for j := 0; j < int(t.Rows); j++ { // Read rows
 			r, err := ReadRow(int64(p))
 			if err != nil {
 				return err
 			}
-			// Push
-			rows = append(rows, *r)
+			rows = append(rows, *r) // Push
 			p += RowSize
 		}
-		// Tree
-		l := len(rows)
+		l := len(rows) // Tree
 		if l > 100 {
-			// Row
-			row := DecimalPlaces(float64(l), 100)
-			// Leaf
-			leaf := DecimalPlaces(float64(row), 3)
-			// Node
-			node := DecimalPlaces(float64(leaf), 5)
+			row := DecimalPlaces(float64(l), 100)   // Row
+			leaf := DecimalPlaces(float64(row), 3)  // Leaf
+			node := DecimalPlaces(float64(leaf), 5) // Node
 
 			// log.Printf("- %d rows: %d leaf: %d node: %d\n", l, row, leaf, node)
-			// R
-			tr := make([][]Row, row)
+
+			tr := make([][]Row, row) // R
 			tp := 0
 			for p := 100; p <= row*100; p += 100 {
 				if p > l {
@@ -85,8 +78,7 @@ func NewMemory(em Em) error {
 				}
 				tp += 1
 			}
-			// L
-			tl := []Leaf{}
+			tl := []Leaf{} // L
 			tp = 0
 			for p := 0; p < leaf; p++ {
 				if (tp + 3) > len(tr) {
@@ -103,8 +95,7 @@ func NewMemory(em Em) error {
 					tp += 3
 				}
 			}
-			// N
-			tn := []Node{}
+			tn := []Node{} // N
 			tp = 0
 			for p := 0; p < node; p++ {
 				if (tp + 5) > len(tl) {
@@ -123,11 +114,9 @@ func NewMemory(em Em) error {
 					tp += 5
 				}
 			}
-			// T
-			GlobalMem.Tree = append(GlobalMem.Tree, Tree{tn})
+			GlobalMem.Tree = append(GlobalMem.Tree, Tree{tn}) // T
 		} else {
-			// One Leaf, One Node
-			GlobalMem.Tree = append(GlobalMem.Tree, Tree{
+			GlobalMem.Tree = append(GlobalMem.Tree, Tree{ // One leaf, one node
 				Node: []Node{
 					{
 						Leaf: []Leaf{
@@ -141,8 +130,7 @@ func NewMemory(em Em) error {
 				},
 			})
 		}
-		// Clear
-		rows = rows[:0]
+		rows = nil // Clear
 	}
 	return nil
 }
@@ -165,8 +153,7 @@ func ReadRow(p int64) (*Row, error) {
 
 // QuitMemory : Clean cache and save buffer to file
 func QuitMemory() error {
-	// Close file
-	GlobalEm.file.Close()
+	GlobalEm.file.Close() // Close file
 	return nil
 }
 
@@ -175,47 +162,28 @@ func DecimalPlaces(raw, to float64) int {
 	n := raw / to
 	nf := fmt.Sprintf("%f", n)
 	r := int(n)
-	// Add
-	if nf[strings.IndexRune(nf, '.')+1] != '0' {
+	if nf[strings.IndexRune(nf, '.')+1] != '0' { // Add
 		r += 1
 	}
 	return r
 }
 
-// InsertRow : Insert row at specified location
-func InsertRow(offset uint64, r Row) error {
+// Insert : SE ? *E
+func (m *Memory) Insert(at uint8, fields []string) {
+	r := m.Tree[at].BackNode().BackLeaf().BackRows() // Back
+	*r = append(*r, Row{fields})                     // Rows
+}
+
+// Selector : GT ? <S> <V>
+func (m *Memory) Selector(at uint8, s, v string) error {
 	return nil
 }
 
-// SelectAll : Query all rows
-func SelectAll(rows uint64) ([]Row, error) {
-	return nil, nil
-}
+func (m *Memory) SelectAll(at uint8)           {}
+func (m *Memory) SelectOne(at uint8, p uint64) {}
 
-// SelectOne : Query the row at the specified location
-func SelectOne(offset uint64) (*Row, error) {
-	return nil, nil
-}
+func (m *Memory) SelectRange(at uint8, f, t uint64) {}
 
-// SelectRange : Rows within query scope
-func SelectRange(from, to uint64) ([]Row, error) {
-	return nil, nil
-}
+func (m *Memory) Update(at uint8, n, v string, p uint64) {}
 
-// UpdateRow : Updates the specified row
-func UpdateRow(offset uint64, n Row, verify ...Row) error {
-	return nil
-}
-
-// DeleteOne : Delete the row at the specified location
-func DeleteOne(offset uint64, verify ...string) error {
-	if len(verify) != 0 {
-		fmt.Println("delete verify row data")
-	}
-	return nil
-}
-
-// DeleteAll : Delete all rows of the table
-func DeleteAll(from, to uint64) error {
-	return nil
-}
+func (m *Memory) Delete(at uint8, p uint64) {}

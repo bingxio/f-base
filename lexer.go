@@ -40,7 +40,7 @@ func (l Lex) parse() Expr {
 	var expr interface{}
 
 	for l.Pos < len(l.Src) {
-		if kind == 4 { // Error expression
+		if kind == 5 { // Error expression
 			break
 		}
 		l.skipWhiteSpace()
@@ -53,8 +53,7 @@ func (l Lex) parse() Expr {
 			l.Pos++
 		}
 		if lit != "" {
-			// Command header parsing
-			if kind == -1 {
+			if kind == -1 { // Command header parsing
 				switch lit {
 				case "se", "SE":
 					kind = 0
@@ -68,21 +67,22 @@ func (l Lex) parse() Expr {
 				case "de", "DE":
 					kind = 3
 					expr = DeExpr{}
+				case "gt", "GT":
+					kind = 4
+					expr = GtExpr{}
 				default:
 					fmt.Printf(
 						"unknown command prefix '%s'\n",
 						lit,
 					)
-					kind = 4
+					kind = 5
 					expr = ErExpr{}
 				}
 			} else {
-				// Set command parameters
-				// In turn
-				ast, err := setParam(&expr, Token{Literal: lit})
+				ast, err := setParam(&expr, Token{Literal: lit}) // Set command params
 				if err != nil {
 					fmt.Println(err.Error())
-					kind = 4
+					kind = 5
 				}
 				expr = ast
 			}
@@ -90,8 +90,7 @@ func (l Lex) parse() Expr {
 		}
 		l.Pos++
 	}
-	// Determine whether the expression is legal or not
-	if err := verifyExpr(expr.(Expr)); err != nil {
+	if err := verifyExpr(expr.(Expr)); err != nil { // Expr is legal or not
 		fmt.Println(err.Error())
 		expr = ErExpr{}
 	}
@@ -109,8 +108,7 @@ func setParam(expr *interface{}, tok Token) (Expr, error) {
 				Table: tok,
 			}, nil
 		} else {
-			// FIELDS
-			seExpr.F = append(seExpr.F, tok)
+			seExpr.F = append(seExpr.F, tok) // *F
 			return seExpr, nil
 		}
 	case GeExpr:
@@ -120,13 +118,11 @@ func setParam(expr *interface{}, tok Token) (Expr, error) {
 				Table: tok,
 			}, nil
 		} else {
-			// FROM
-			if emptyValue(geExpr.F) {
+			if emptyValue(geExpr.F) { // F
 				geExpr.F = tok
 				return geExpr, nil
 			}
-			// TO
-			if emptyValue(geExpr.T) {
+			if emptyValue(geExpr.T) { // T
 				geExpr.T = tok
 				return geExpr, nil
 			}
@@ -139,18 +135,19 @@ func setParam(expr *interface{}, tok Token) (Expr, error) {
 				Table: tok,
 			}, nil
 		} else {
-			// POS
-			if emptyValue(upExpr.P) {
+			if emptyValue(upExpr.P) { // P
 				upExpr.P = tok
 				return upExpr, nil
 			}
-			// NEW
-			if emptyValue(upExpr.N) {
+			if emptyValue(upExpr.S) { // S
+				upExpr.S = tok
+				return upExpr, nil
+			}
+			if emptyValue(upExpr.N) { // N
 				upExpr.N = tok
 				return upExpr, nil
 			}
-			// VER
-			if emptyValue(upExpr.V) {
+			if emptyValue(upExpr.V) { // V
 				upExpr.V = tok
 				return upExpr, nil
 			}
@@ -163,15 +160,26 @@ func setParam(expr *interface{}, tok Token) (Expr, error) {
 				Table: tok,
 			}, nil
 		} else {
-			// POS
-			if emptyValue(deExpr.P) {
+			if emptyValue(deExpr.P) { // P
 				deExpr.P = tok
 				return deExpr, nil
 			}
-			// VER
-			if emptyValue(deExpr.V) {
-				deExpr.V = tok
-				return deExpr, nil
+			return ErExpr{}, errors.New("more param specified")
+		}
+	case GtExpr:
+		gtExpr := (*expr).(GtExpr)
+		if emptyValue(gtExpr.Table) {
+			return GtExpr{
+				Table: tok,
+			}, nil
+		} else {
+			if emptyValue(gtExpr.S) { // S
+				gtExpr.S = tok
+				return gtExpr, nil
+			}
+			if emptyValue(gtExpr.V) { // V
+				gtExpr.V = tok
+				return gtExpr, nil
 			}
 			return ErExpr{}, errors.New("more param specified")
 		}
@@ -233,6 +241,9 @@ func verifyExpr(expr Expr) error {
 		if emptyValue(upExpr.P) {
 			return errors.New("lost position of update limit")
 		}
+		if emptyValue(upExpr.S) {
+			return errors.New("lost field of update limit")
+		}
 		if emptyValue(upExpr.N) {
 			return errors.New("lost new value")
 		}
@@ -246,6 +257,17 @@ func verifyExpr(expr Expr) error {
 			return errors.New("lost position of delete limit")
 		}
 		return nil
+	case "GtExpr":
+		gtExpr := expr.(GtExpr)
+		if emptyValue(gtExpr.Table) {
+			return errors.New("lost table")
+		}
+		if emptyValue(gtExpr.S) {
+			return errors.New("lost field of selector limit")
+		}
+		if emptyValue(gtExpr.V) {
+			return errors.New("lost value of selector limit")
+		}
 	}
 	return nil
 }

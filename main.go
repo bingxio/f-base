@@ -53,21 +53,18 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
-	// Em set
-	GlobalEm = Em{
+	GlobalEm = Em{ // Em set
 		db:   f.Name(),
 		file: f,
 		tb:   nil,
 		fork: ForkMode,
 	}
-	// Load database
-	err = GlobalEm.LoadDb()
+	err = GlobalEm.LoadDb() // Load database
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
-	// Fork mode
-	if ForkMode {
+	if ForkMode { // Fork mode
 		GlobalEm.Fork()
 	} else {
 		repl() // Go to read prompt-line loop
@@ -80,8 +77,7 @@ func repl() {
 	fmt.Println(GlobalEm.Stringer(dbInfo()))
 
 	c := make(chan os.Signal, 1)
-	// Ctrl+C or KILL
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM) // Control+C or KILL
 	go func() {
 		for range c {
 			fmt.Printf("\nuse 'exit' or 'quit' command\n> ")
@@ -100,8 +96,7 @@ func repl() {
 		if len(line) == 0 { // Empty line
 			continue
 		}
-		// All black characters line
-		j := 0
+		j := 0 // All black character line
 		for i := 0; i < len(line); i++ {
 			if line[i] == ' ' || line[i] == '\t' {
 				j++
@@ -110,9 +105,10 @@ func repl() {
 		if j == len(line) {
 			continue
 		}
-		// 'help', 'exit', 'quit' and other special commands
+		// 'help', 'exit',
+		// 'quit' and other special commands
 		if line == "help" {
-			usage()
+			help()
 		} else if line == "t" {
 			GlobalEm.Table()
 		} else if line == "license" {
@@ -128,6 +124,8 @@ func repl() {
 			break
 		} else if line == "p" {
 			GlobalMem.Dissemble()
+		} else if line == "usage" {
+			usage()
 		} else {
 			eval(line)
 		}
@@ -145,26 +143,30 @@ func eval(src string) {
 		fmt.Println(err.Error())
 		return
 	}
+	fmt.Println("OK")
 }
 
-// 'help' command to print usage information
-func usage() {
+// 'help' command to print help information
+func help() {
 	fmt.Println(`	SE(se) ? *<E>		-> Insert
 	GE(ge) ? | <F> | -> <T>	-> Select
 	UP(up) ? <P> <N> [<V>]	-> Update
-	DE(de) ? <P> [<V>]	-> Delete
+	DE(de) ? <P>            -> Delete
+	GT(gt) ? <S> <V>        -> Selector
 
 	E -> Elements
-	F -> F
-	T -> T
+	F -> From
+	T -> To
 	P -> Position
-	N -> N
+	N -> New
 	V -> Verify
+	S -> Field
 
 	t           -> List of tables in the DB
 	exit | quit -> Exit the program
 	license     -> Show license
-	p           -> Dissemble trees`)
+	p           -> Dissemble trees
+	usage       -> Show usage`)
 }
 
 // Return the size of the data file
@@ -179,4 +181,20 @@ func dbInfo() string {
 // Show license
 func license() {
 	fmt.Println("GPL 3.0 - bingxio(黄菁) <3106740988@qq.com>")
+}
+
+// Show usage
+func usage() {
+	fmt.Println(`	SE u 1 bingxio 1234
+	
+	GE u
+	GE u 1
+	GE u 1 5
+	
+	UP u 1 3 new
+	UP u 1 3 new old
+	
+	DE u 1
+	
+	GE u 3 limit`)
 }

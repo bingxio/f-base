@@ -61,10 +61,25 @@ func (t Tree) Stringer(p int) string {
 		}
 	}()
 	return fmt.Sprintf(
-		"name: '%s' node: %d leaf: %d rows: %d",
+		"<name: '%s' node: %d leaf: %d rows: %d>",
 		GlobalEm.tb[p].Name,
 		len(t.Node),
 		x,
 		y,
 	)
+}
+
+// Back
+func (t Tree) BackNode() *Node {
+	return &t.Node[len(t.Node)-1]
+}
+
+// Back
+func (n Node) BackLeaf() *Leaf {
+	return &n.Leaf[len(n.Leaf)-1]
+}
+
+// Back
+func (l Leaf) BackRows() *[]Row {
+	return &l.Data[len(l.Data)-1]
 }

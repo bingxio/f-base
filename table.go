@@ -22,8 +22,8 @@ type Table struct {
 }
 
 // Insert : Perform the add operation
-func (tb *Table) Insert(fields []string) error {
-	return nil
+func (tb *Table) Insert(fields []string) {
+	GlobalMem.Insert(tb.At-1, fields)
 }
 
 // Select : Perform query operation
@@ -83,7 +83,7 @@ func (tb *Table) Update(p, n, v string) (uint64, error) {
 }
 
 // Delete : Perform the delete operation
-func (tb *Table) Delete(p, v string) error {
+func (tb *Table) Delete(p string) error {
 	// TODO: When p is -1, delete the entire data table
 	if p == "-1" {
 		log.Println("delete all")

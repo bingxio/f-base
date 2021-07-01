@@ -9,14 +9,11 @@ const (
 	Ge        // SELECT
 	Up        // UPDATE
 	De        // DELETE
+	Gt        // SELECTOR
 	Er        // ERROR
 )
 
 // Expr
-// SE ? *<E>
-// GE ? | <F> | -> <T>
-// UP ? <P> <N> [<V>]
-// DE ? <P> [<V>]
 type Expr interface {
 	Stringer() string
 	Kind() int
@@ -65,15 +62,17 @@ func (g GeExpr) Kind() int { return Ge }
 type UpExpr struct {
 	Table Token
 	P     Token
+	S     Token
 	N     Token
 	V     Token
 }
 
 func (u UpExpr) Stringer() string {
 	return fmt.Sprintf(
-		"UpExpr \n\tTable=%s \n\tP=%s \n\tN=%s \n\tV=%s",
+		"UpExpr \n\tTable=%s \n\tP=%s \n\tS=%s \n\tN=%s \n\tV=%s",
 		u.Table.Stringer(),
 		u.P.Stringer(),
+		u.S.Stringer(),
 		u.N.Stringer(),
 		u.V.Stringer())
 }
@@ -84,15 +83,28 @@ func (u UpExpr) Kind() int { return Up }
 type DeExpr struct {
 	Table Token
 	P     Token
-	V     Token
 }
 
 func (d DeExpr) Stringer() string {
-	return fmt.Sprintf("DeExpr \n\tTable=%s \n\tP=%s \n\tV=%s",
-		d.Table.Stringer(), d.P.Stringer(), d.V.Stringer())
+	return fmt.Sprintf("DeExpr \n\tTable=%s \n\tP=%s",
+		d.Table.Stringer(), d.P.Stringer())
 }
 
 func (d DeExpr) Kind() int { return De }
+
+// GtExpr SELECTOR
+type GtExpr struct {
+	Table Token
+	S     Token
+	V     Token
+}
+
+func (g GtExpr) Stringer() string {
+	return fmt.Sprintf("GtExpr \n\tTable=%s \n\tS=%s \n\tV=%s",
+		g.Table.Stringer(), g.S.Stringer(), g.V.Stringer())
+}
+
+func (g GtExpr) Kind() int { return Gt }
 
 // ErExpr ERROR
 type ErExpr struct{}

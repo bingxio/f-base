@@ -51,7 +51,7 @@ func (e Em) Stringer(info string) string {
 func (e *Em) Table() {
 	for _, v := range e.tb {
 		fmt.Printf(
-			"name: '%s' row: %-4d - %s\n",
+			"<name: '%s' row: %-4d - %s>\n",
 			func(b [20]byte) string {
 				s := ""
 				for i := 0; i < len(b); i++ {
@@ -90,16 +90,14 @@ func (e *Em) LoadDb() error {
 		// return nil
 		e.testData()
 	}
-	// Read Tbs
-	count, err := e.loadTbs()
+	count, err := e.loadTbs() // Read tbs
 	if err != nil {
 		return err
 	}
 	if count == 0 {
 		return nil
 	}
-	// Have Tbs
-	err = e.loadTables(count)
+	err = e.loadTables(count) // Have tbs
 	if err != nil {
 		return err
 	}
@@ -110,14 +108,12 @@ func (e *Em) LoadDb() error {
 // LoadTbs : Returns the counts of table in DB
 func (e Em) loadTbs() (uint8, error) {
 	e.file.Seek(0, io.SeekStart)
-	// Read
-	b := make([]byte, tbs)
+	b := make([]byte, tbs) // Read
 	_, err := e.file.Read(b)
 	if err != nil {
 		return 0, err
 	}
-	// Decode
-	x := uint8(0)
+	x := uint8(0) // Decode
 	err = gob.NewDecoder(
 		bytes.NewBuffer(b)).Decode(&x)
 	if err != nil {
@@ -129,14 +125,12 @@ func (e Em) loadTbs() (uint8, error) {
 // LoadTables : Parse all data tables
 func (e *Em) loadTables(tbs uint8) error {
 	for tbs > 0 {
-		// Read
-		b := make([]byte, TableSize)
+		b := make([]byte, TableSize) // Read
 		_, err := e.file.Read(b)
 		if err != nil {
 			return err
 		}
-		// Decode
-		t := Table{}
+		t := Table{} // Decode
 		err = gob.NewDecoder(
 			bytes.NewBuffer(b)).Decode(&t)
 		if err != nil {
@@ -173,6 +167,7 @@ func (e Em) Exist(name string) (int, bool) {
 
 // ExecuteExpr : Execute command expression
 func (e *Em) ExecuteExpr(expr Expr) error {
+	// fmt.Println(expr.Stringer())
 	switch reflect.TypeOf(expr).Name() {
 	case "SeExpr":
 		se := expr.(SeExpr)
@@ -181,16 +176,13 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 			log.Println("create new tb", se.Table.Literal)
 			return nil
 		}
-		err := e.tb[i].Insert(func(f []Token) []string {
-			e := make([]string, len(f))
+		e.tb[i].Insert(func(f []Token) []string {
+			e := []string{}
 			for _, v := range f {
 				e = append(e, v.Literal)
 			}
 			return e
 		}(se.F))
-		if err != nil {
-			return err
-		}
 	case "UpExpr":
 		up := expr.(UpExpr)
 		i, exist := e.Exist(up.Table.Literal)
@@ -208,7 +200,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		err := e.tb[i].Delete(de.P.Literal, de.V.Literal)
+		err := e.tb[i].Delete(de.P.Literal)
 		if err != nil {
 			return err
 		}
@@ -231,8 +223,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 
 // Export some testing data written to DB file
 func (e *Em) testData() {
-	// Tbs
-	b := bytes.NewBuffer([]byte{})
+	b := bytes.NewBuffer([]byte{}) // Tbs
 	err := gob.NewEncoder(b).Encode(uint8(2))
 	if err != nil {
 		panic(err.Error())
@@ -270,9 +261,14 @@ func (e *Em) testData() {
 		b.Reset()
 	}
 	r := []Row{}
-	for i := 0; i < 15936; i++ {
+	for i := 0; i < 6525; i++ {
 		r = append(r, Row{
-			Data: []string{strconv.Itoa(i), "test", "what's up"},
+			Data: []string{strconv.Itoa(i + 1), "name", "pass"},
+		})
+	}
+	for i := 0; i < 9411; i++ {
+		r = append(r, Row{
+			Data: []string{strconv.Itoa(i + 1), "title", "info"},
 		})
 	}
 	for _, v := range r {

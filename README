@@ -4,10 +4,24 @@ Command:
 
 	SE(se) ? *<E>
 	GE(ge) ? | <F> | -> <T>
-	UP(up) ? <P> <N> [<V>]
-	DE(de) ? <P> [<V>]
+	UP(up) ? <P> <S> <N> [<V>]
+	DE(de) ? <P>
+	GT(gt) ? <S> <V>
 
-	Type 'help' to show more information
+	Type 'help' and 'usage' to show more information
+
+	> SE u 1 bingxio 1234
+
+	> GE u
+	> GE u 1
+	> GE u 1 5
+
+	> UP u 1 3 new
+	> UP u 1 3 new old
+
+	> DE u 1
+
+	> GT u 3 limit
 
 Build:
 
