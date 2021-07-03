@@ -196,5 +196,5 @@ func usage() {
 	
 	DE u 1
 	
-	GE u 3 limit`)
+	GT u 3 limit`)
 }

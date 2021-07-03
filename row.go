@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 )
 
 // Maximum byte length of the structure
@@ -35,5 +34,13 @@ func (r Row) Len() uint8 {
 
 // Stringer : stringer
 func (r Row) Stringer() string {
-	return fmt.Sprintf("%v", r.Data) // %q
+	l := "<"
+	for k, v := range r.Data {
+		l += v
+		if k+1 != len(r.Data) {
+			l += " "
+		}
+	}
+	l += ">"
+	return l
 }

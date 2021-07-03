@@ -11,8 +11,8 @@ import (
 
 	  	   Tree(T)
 		      |
-		  	  v
-	NodeA,  NodeB,  NodeC..		5 Leaf
+		  	  v					   5 Leaf
+	NodeA,  NodeB,  NodeC..		1500 Data
 	  |       |		  |
 	  v       v		  v
 	LA, LB..  L..	  L..
@@ -52,14 +52,12 @@ type Leaf struct {
 func (t Tree) Stringer(p int) string {
 	x := 0
 	y := 0
-	func() {
-		for _, v := range t.Node {
-			x += len(v.Leaf)
-			for _, b := range v.Leaf {
-				y += len(b.Data)
-			}
+	for _, v := range t.Node {
+		x += len(v.Leaf)
+		for _, b := range v.Leaf {
+			y += len(b.Data)
 		}
-	}()
+	}
 	return fmt.Sprintf(
 		"<name: '%s' node: %d leaf: %d rows: %d>",
 		GlobalEm.tb[p].Name,
@@ -82,4 +80,25 @@ func (n Node) BackLeaf() *Leaf {
 // Back
 func (l Leaf) BackRows() *[]Row {
 	return &l.Data[len(l.Data)-1]
+}
+
+// Iterator
+func (t Tree) Iter(f func(int, Node)) {
+	for i, v := range t.Node {
+		f(i, v)
+	}
+}
+
+// Iterator
+func (n Node) Iter(f func(int, Leaf)) {
+	for i, v := range n.Leaf {
+		f(i, v)
+	}
+}
+
+// Iterator
+func (l Leaf) Iter(f func(int, []Row)) {
+	for i, v := range l.Data {
+		f(i, v)
+	}
 }

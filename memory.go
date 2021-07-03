@@ -7,6 +7,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var (
@@ -116,19 +117,14 @@ func NewMemory(em Em) error {
 			}
 			GlobalMem.Tree = append(GlobalMem.Tree, Tree{tn}) // T
 		} else {
-			GlobalMem.Tree = append(GlobalMem.Tree, Tree{ // One leaf, one node
-				Node: []Node{
-					{
-						Leaf: []Leaf{
-							{
-								Data: [][]Row{
-									rows,
-								},
-							},
-						},
-					},
-				},
-			})
+			r := [][]Row{} // One leaf, one node
+			l := []Leaf{
+				{r},
+			}
+			n := []Node{
+				{l},
+			}
+			GlobalMem.Tree = append(GlobalMem.Tree, Tree{n})
 		}
 		rows = nil // Clear
 	}
@@ -168,20 +164,123 @@ func DecimalPlaces(raw, to float64) int {
 	return r
 }
 
+// CountRows : Return count of all rows in tables
+func (m Memory) CountRows() uint64 {
+	var p uint64
+	for _, v := range m.Tb {
+		p += v.Rows
+	}
+	return p
+}
+
+// GetBackOffset : Return the back offsets in tables of rows size
+func (m Memory) GetBackOffset() uint64 {
+	var p uint64 = uint64(tbs + (TableSize * len(m.Tb)))
+	for _, v := range m.Tb {
+		p += v.Rows * RowSize
+	}
+	return p
+}
+
+// NewTable : Add new table and return it
+func (m *Memory) NewTable(name string) Table {
+	t := Table{
+		Name: func() [20]byte {
+			x := [20]byte{}
+			for i, v := range name {
+				if i >= 20 {
+					break
+				}
+				x[i] = byte(v)
+			}
+			return x
+		}(),
+		Created: uint32(time.Now().Unix()),
+		From:    m.GetBackOffset(),
+		Rows:    0,
+		At:      uint8(len(m.Tb) + 1),
+	}
+	m.Tbs += 1
+	m.Tb = append(m.Tb, t)
+	return t
+}
+
 // Insert : SE ? *E
 func (m *Memory) Insert(at uint8, fields []string) {
+	m.Tb[at].Rows += 1
+	if int(at) == len(m.Tree) { // New Tree
+		r := []Row{
+			{fields},
+		}
+		l := []Leaf{
+			{Data: [][]Row{r}},
+		}
+		n := []Node{
+			{l},
+		}
+		m.Tree = append(m.Tree, Tree{n})
+		return
+	}
 	r := m.Tree[at].BackNode().BackLeaf().BackRows() // Back
 	*r = append(*r, Row{fields})                     // Rows
 }
 
 // Selector : GT ? <S> <V>
-func (m *Memory) Selector(at uint8, s, v string) error {
-	return nil
+func (m *Memory) Selector(at, s uint8, v string) {
+	e := func(r Row) {
+		if r.Len() < s {
+			return
+		}
+		for i, d := range r.Data {
+			if i+1 == int(s) && d == v {
+				fmt.Println(r.Stringer())
+			}
+		}
+	}
+	f := func(i int, r []Row) { // R
+		for _, v := range r {
+			e(v)
+		}
+	}
+	t := m.Tree[at]              // T
+	t.Iter(func(i int, n Node) { // N
+		n.Iter(func(i int, l Leaf) { l.Iter(f) }) // L
+	})
 }
 
-func (m *Memory) SelectAll(at uint8)           {}
-func (m *Memory) SelectOne(at uint8, p uint64) {}
+// SelectAll : GE ?
+func (m *Memory) SelectAll(at uint8) {
+	f := func(i int, r []Row) { // R
+		for _, v := range r {
+			fmt.Println(v.Stringer()) // Show
+		}
+	}
+	t := m.Tree[at]              // T
+	t.Iter(func(i int, n Node) { // N
+		n.Iter(func(i int, l Leaf) { l.Iter(f) }) // L
+	})
+}
 
+// SelectOne : GE ? <F>
+func (m *Memory) SelectOne(at uint8, p uint64) {
+	f := func(i int, r []Row) {
+		for k, _ := range r {
+			fmt.Println(k)
+		}
+	}
+	t := m.Tree[at]
+	if p > m.Tb[at].Rows {
+		return
+	}
+	n := DecimalPlaces(float64(p), 1500)
+	if n > 0 {
+		n -= 1
+	}
+	np := t.Node[n]
+	np.Iter(func(i int, l Leaf) { l.Iter(f) })
+}
+
+// SelectRange : GE ? <F> -> <T>
 func (m *Memory) SelectRange(at uint8, f, t uint64) {}
 
 func (m *Memory) Update(at uint8, n, v string, p uint64) {}

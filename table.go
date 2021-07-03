@@ -24,35 +24,43 @@ type Table struct {
 // Insert : Perform the add operation
 func (tb *Table) Insert(fields []string) {
 	GlobalMem.Insert(tb.At-1, fields)
+	tb.Rows += 1
+}
+
+// Selector : Conditional query
+func (tb *Table) Selector(s, v string) error {
+	p, err := strconv.Atoi(s)
+	if err != nil {
+		return errors.New("need receive integer offset")
+	}
+	GlobalMem.Selector(tb.At-1, uint8(p), v)
+	return nil
 }
 
 // Select : Perform query operation
 func (tb *Table) Select(f, t string) ([]Row, error) {
 	rf := 0
 	rt := 0
-	// F
-	if f != "" {
+	if f != "" { // F
 		i, err := strconv.Atoi(f)
 		if err != nil {
 			return nil, errors.New("need receive integer offset")
 		}
 		rf = i
 	}
-	// T
-	if t != "" {
+	if t != "" { // T
 		i, err := strconv.Atoi(t)
 		if err != nil {
 			return nil, errors.New("need receive integer offset")
 		}
 		rt = i
 	}
-	// All
 	if rf == 0 && rt == 0 {
-		fmt.Println("select all")
+		GlobalMem.SelectAll(tb.At - 1) // All
 	} else {
 		// One
 		if rf != 0 && rt == 0 {
-			fmt.Println("select one")
+			GlobalMem.SelectOne(tb.At-1, uint64(rf))
 		} else {
 			if rt != 0 && rf > rt {
 				return nil, errors.New("index limit exceeded")

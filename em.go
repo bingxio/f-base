@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -173,8 +172,8 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		se := expr.(SeExpr)
 		i, exist := e.Exist(se.Table.Literal)
 		if !exist {
-			log.Println("create new tb", se.Table.Literal)
-			return nil
+			e.tb = append(e.tb, GlobalMem.NewTable(se.Table.Literal))
+			i = len(e.tb) - 1
 		}
 		e.tb[i].Insert(func(f []Token) []string {
 			e := []string{}
@@ -216,6 +215,16 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		}
 		for _, v := range rows {
 			fmt.Println(v.Stringer())
+		}
+	case "GtExpr":
+		gt := expr.(GtExpr)
+		i, exist := e.Exist(gt.Table.Literal)
+		if !exist {
+			return errors.New("table does not exist")
+		}
+		err := e.tb[i].Selector(gt.S.Literal, gt.V.Literal)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
