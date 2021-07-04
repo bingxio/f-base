@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-// Maximum byte length of the structure
+// TableSize : Maximum byte length of the structure
 const TableSize = 150
 
 // Table : Each data table in the DB
@@ -92,7 +92,6 @@ func (tb *Table) Update(p, n, v string) (uint64, error) {
 
 // Delete : Perform the delete operation
 func (tb *Table) Delete(p string) error {
-	// TODO: When p is -1, delete the entire data table
 	if p == "-1" {
 		log.Println("delete all")
 		return nil

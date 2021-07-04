@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -48,7 +49,7 @@ func NewMemory(em Em) error {
 	GlobalMem.Tbs = uint(len(em.tb))
 	GlobalMem.Tb = em.tb
 
-	rows := []Row{}
+	var rows []Row
 
 	for i := 0; i < len(em.tb); i++ { // Buf
 		t := em.tb[i]
@@ -79,11 +80,11 @@ func NewMemory(em Em) error {
 				}
 				tp += 1
 			}
-			tl := []Leaf{} // L
+			var tl []Leaf // L
 			tp = 0
 			for p := 0; p < leaf; p++ {
 				if (tp + 3) > len(tr) {
-					r := [][]Row{}
+					var r [][]Row
 					for i := tp; i < len(tr); i++ {
 						r = append(r, tr[i])
 						tp++
@@ -96,11 +97,14 @@ func NewMemory(em Em) error {
 					tp += 3
 				}
 			}
-			tn := []Node{} // N
+			var tn []Node // N
 			tp = 0
+			if tl == nil {
+				return errors.New("unhandled error")
+			}
 			for p := 0; p < node; p++ {
 				if (tp + 5) > len(tl) {
-					r := []Leaf{}
+					var r []Leaf
 					for i := tp; i < len(tl); i++ {
 						r = append(r, tl[i])
 						tp++
@@ -117,7 +121,7 @@ func NewMemory(em Em) error {
 			}
 			GlobalMem.Tree = append(GlobalMem.Tree, Tree{tn}) // T
 		} else {
-			r := [][]Row{} // One leaf, one node
+			var r [][]Row // One leaf, one node
 			l := []Leaf{
 				{r},
 			}
@@ -149,7 +153,10 @@ func ReadRow(p int64) (*Row, error) {
 
 // QuitMemory : Clean cache and save buffer to file
 func QuitMemory() error {
-	GlobalEm.file.Close() // Close file
+	err := GlobalEm.file.Close()
+	if err != nil {
+		return err
+	} // Close file
 	return nil
 }
 
@@ -175,7 +182,7 @@ func (m Memory) CountRows() uint64 {
 
 // GetBackOffset : Return the back offsets in tables of rows size
 func (m Memory) GetBackOffset() uint64 {
-	var p uint64 = uint64(tbs + (TableSize * len(m.Tb)))
+	var p = uint64(tbs + (TableSize * len(m.Tb)))
 	for _, v := range m.Tb {
 		p += v.Rows * RowSize
 	}

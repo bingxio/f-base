@@ -38,12 +38,12 @@ type Tree struct {
 	Node []Node
 }
 
-// Node
+// Node :
 type Node struct {
 	Leaf []Leaf
 }
 
-// Leaf
+// Leaf :
 type Leaf struct {
 	Data [][]Row
 }
@@ -67,36 +67,36 @@ func (t Tree) Stringer(p int) string {
 	)
 }
 
-// Back
+// BackNode : Back
 func (t Tree) BackNode() *Node {
 	return &t.Node[len(t.Node)-1]
 }
 
-// Back
+// BackLeaf : Back
 func (n Node) BackLeaf() *Leaf {
 	return &n.Leaf[len(n.Leaf)-1]
 }
 
-// Back
+// BackRows : Back
 func (l Leaf) BackRows() *[]Row {
 	return &l.Data[len(l.Data)-1]
 }
 
-// Iterator
+// Iter : Iterator
 func (t Tree) Iter(f func(int, Node)) {
 	for i, v := range t.Node {
 		f(i, v)
 	}
 }
 
-// Iterator
+// Iter : Iterator
 func (n Node) Iter(f func(int, Leaf)) {
 	for i, v := range n.Leaf {
 		f(i, v)
 	}
 }
 
-// Iterator
+// Iter : Iterator
 func (l Leaf) Iter(f func(int, []Row)) {
 	for i, v := range l.Data {
 		f(i, v)

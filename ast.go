@@ -13,7 +13,7 @@ const (
 	Er        // ERROR
 )
 
-// Expr
+// Expr : Expression
 type Expr interface {
 	Stringer() string
 	Kind() int

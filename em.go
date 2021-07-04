@@ -100,15 +100,21 @@ func (e *Em) LoadDb() error {
 	if err != nil {
 		return err
 	}
-	NewMemory(*e) // To Memory
+	err = NewMemory(*e)
+	if err != nil {
+		return err
+	} // To Memory
 	return nil
 }
 
 // LoadTbs : Returns the counts of table in DB
 func (e Em) loadTbs() (uint8, error) {
-	e.file.Seek(0, io.SeekStart)
+	_, err := e.file.Seek(0, io.SeekStart)
+	if err != nil {
+		return 0, err
+	}
 	b := make([]byte, tbs) // Read
-	_, err := e.file.Read(b)
+	_, err = e.file.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -176,7 +182,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 			i = len(e.tb) - 1
 		}
 		e.tb[i].Insert(func(f []Token) []string {
-			e := []string{}
+			var e []string
 			for _, v := range f {
 				e = append(e, v.Literal)
 			}
@@ -237,7 +243,7 @@ func (e *Em) testData() {
 	if err != nil {
 		panic(err.Error())
 	}
-	e.file.Write(b.Bytes())
+	_, _ = e.file.Write(b.Bytes())
 	// fmt.Printf("Tbs: %p (%d)\n", b.Bytes(), b.Len())
 	// Table
 	//
@@ -263,13 +269,13 @@ func (e *Em) testData() {
 		if err != nil {
 			panic(err.Error())
 		}
-		e.file.Write(b.Bytes())
-		e.file.Write(make([]byte, TableSize-b.Len()))
+		_, _ = e.file.Write(b.Bytes())
+		_, _ = e.file.Write(make([]byte, TableSize-b.Len()))
 		// fmt.Printf("Table: %p (%d) >> %d\n",
 		// 	b.Bytes(), b.Len(), b.Len()+(TableSize-b.Len()))
 		b.Reset()
 	}
-	r := []Row{}
+	var r []Row
 	for i := 0; i < 6525; i++ {
 		r = append(r, Row{
 			Data: []string{strconv.Itoa(i + 1), "name", "pass"},
@@ -285,11 +291,11 @@ func (e *Em) testData() {
 		if err != nil {
 			panic(err.Error())
 		}
-		e.file.Write(b.Bytes())
-		e.file.Write(make([]byte, RowSize-b.Len()))
+		_, _ = e.file.Write(b.Bytes())
+		_, _ = e.file.Write(make([]byte, RowSize-b.Len()))
 		// fmt.Printf("Row(%d): %p (%d) >> %d\n",
 		// 	k+1, b.Bytes(), b.Len(), b.Len()+(RowSize-b.Len()))
 		b.Reset()
 	}
-	e.file.Seek(0, io.SeekStart)
+	_, _ = e.file.Seek(0, io.SeekStart)
 }
