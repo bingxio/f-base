@@ -4,8 +4,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"strconv"
 )
 
@@ -22,23 +20,22 @@ type Table struct {
 }
 
 // Insert : Perform the add operation
-func (tb *Table) Insert(fields []string) {
-	GlobalMem.Insert(tb.At-1, fields)
-	tb.Rows += 1
+func (tb *Table) Insert(fields []string) Result {
+	tb.Rows += 1 // For Em table
+	return GlobalMem.Insert(tb.At-1, fields)
 }
 
 // Selector : Conditional query
-func (tb *Table) Selector(s, v string) error {
+func (tb *Table) Selector(s, v string) (Result, error) {
 	p, err := strconv.Atoi(s)
 	if err != nil {
-		return errors.New("need receive integer offset")
+		return nil, errors.New("need receive integer offset")
 	}
-	GlobalMem.Selector(tb.At-1, uint8(p), v)
-	return nil
+	return GlobalMem.Selector(tb.At-1, uint8(p), v), nil
 }
 
 // Select : Perform query operation
-func (tb *Table) Select(f, t string) ([]Row, error) {
+func (tb *Table) Select(f, t string) (Result, error) {
 	rf := 0
 	rt := 0
 	if f != "" { // F
@@ -56,54 +53,55 @@ func (tb *Table) Select(f, t string) ([]Row, error) {
 		rt = i
 	}
 	if rf == 0 && rt == 0 {
-		GlobalMem.SelectAll(tb.At - 1) // All
+		return GlobalMem.SelectAll(tb.At - 1), nil // All
 	} else {
-		// One
 		if rf != 0 && rt == 0 {
-			GlobalMem.SelectOne(tb.At-1, uint64(rf))
+			return GlobalMem.SelectOne(tb.At-1, uint64(rf)), nil // One
 		} else {
 			if rt != 0 && rf > rt {
 				return nil, errors.New("index limit exceeded")
 			}
-			// Range
-			fmt.Println("select range")
+			return GlobalMem.SelectRange(tb.At-1, uint64(rf), uint64(rt)), nil // Range
 		}
 	}
-	return nil, nil
 }
 
 // Update : Perform update operation
-func (tb *Table) Update(p, n, v string) (uint64, error) {
+func (tb *Table) Update(p, s, n, v string) (Result, error) {
 	rp := -1
-	// P
-	if p != "" {
+	rs := -1
+	if p != "" { // P
 		i, err := strconv.Atoi(p)
 		if err != nil {
-			return 0, errors.New("need receive integer offset")
+			return nil, errors.New("need receive integer offset")
 		}
 		rp = i
 	}
-	if rp <= 0 {
-		return 0, errors.New("index range")
+	if s != "" { // S
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, errors.New("need receive integer offset")
+		}
+		rs = i
 	}
-	log.Println(rp)
-	return 0, nil
+	if rp <= 0 || rs <= 0 {
+		return nil, errors.New("index range")
+	}
+	return GlobalMem.Update(tb.At-1, uint8(rs), n, v, uint64(rp)), nil
 }
 
 // Delete : Perform the delete operation
-func (tb *Table) Delete(p string) error {
-	if p == "-1" {
-		log.Println("delete all")
-		return nil
+func (tb *Table) Delete(p string) (Result, error) {
+	if p == "" {
+		return GlobalMem.DeleteAll(tb.At - 1), nil
 	}
-	rp := -2
+	rp := -1
 	if p != "" {
 		i, err := strconv.Atoi(p)
 		if err != nil {
-			return errors.New("need receive integer offset")
+			return nil, errors.New("need receive integer offset")
 		}
 		rp = i
 	}
-	log.Println(rp)
-	return nil
+	return GlobalMem.Delete(tb.At-1, uint64(rp)), nil
 }

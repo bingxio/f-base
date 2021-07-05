@@ -7,33 +7,34 @@ import (
 )
 
 /*
-	Tree Structure:
+    Tree: Structure:
 
-	  	   Tree(T)
-		      |
-		  	  v					   5 Leaf
-	NodeA,  NodeB,  NodeC..		1500 Data
-	  |       |		  |
-	  v       v		  v
-	LA, LB..  L..	  L..
-	  \		  |		 /
-	  		  v
-			Leaf(L)				3 Row
-			  |
-			  v
-			Rows(R)				100 Data
+            Tree(T)
+              |
+              v                    5 Leaf
+    NodeA,  NodeB,  NodeC..     1500 Data
+      |       |       |
+      v       v       v
+    LA, LB..  L..     L..
+      \       |      /
+              v
+            Leaf(L)                 3 Row
+              |
+              v
+            Rows(R)              100 Data
 
-	Table:
-		From 	uint64
-		At   	uint8
-		Rows 	uint64
+    Table:
+        From 	uint64
+        At   	uint8
+        Rows 	uint64
 
-	1. Rows / 100 =  Row
-	2. Row  / 3   =  Leaf
-	3. Leaf / 5   =  Node
+    1. Rows / 100 =  Row
+    2. Row  / 3   =  Leaf
+    3. Leaf / 5   =  Node
 
-		T -> Node
+        T -> Node
 */
+
 type Tree struct {
 	Node []Node
 }
@@ -100,5 +101,19 @@ func (n Node) Iter(f func(int, Leaf)) {
 func (l Leaf) Iter(f func(int, []Row)) {
 	for i, v := range l.Data {
 		f(i, v)
+	}
+}
+
+// PointIter : Quote
+func (l *Leaf) PointIter(f func(int, *[]Row)) {
+	for i, v := range l.Data {
+		f(i, &v)
+	}
+}
+
+// OutPointIter : Quote with Leaf
+func (l *Leaf) OutPointIter(f func(*Leaf, int, *[]Row)) {
+	for i, v := range l.Data {
+		f(l, i, &v)
 	}
 }

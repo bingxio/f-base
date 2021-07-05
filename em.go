@@ -32,22 +32,30 @@ type Em struct {
 func (e Em) Stringer(info string) string {
 	b := strings.Builder{}
 	b.WriteString(fmt.Sprintf("Db: '%s' %sB\n", e.db, info))
-	b.WriteString("Tb: \n")
-	b.WriteString(func() string {
-		l := ""
-		for i := 0; i < len(e.tb); i++ {
-			l += fmt.Sprintf("\t%d: '%s'", e.tb[i].At, e.tb[i].Name[:])
-			if i+1 != len(e.tb) {
-				l += "\n"
+	if len(e.tb) == 0 {
+		b.WriteString("Tb: \n\tEmpty")
+	} else {
+		b.WriteString("Tb: \n")
+		b.WriteString(func() string {
+			l := ""
+			for i := 0; i < len(e.tb); i++ {
+				l += fmt.Sprintf("\t%d: '%s'", e.tb[i].At, e.tb[i].Name[:])
+				if i+1 != len(e.tb) {
+					l += "\n"
+				}
 			}
-		}
-		return l
-	}())
+			return l
+		}())
+	}
 	return b.String()
 }
 
 // Table : 'table' command to print all of tables in the DB
 func (e *Em) Table() {
+	if len(e.tb) == 0 {
+		fmt.Println("<empty table>")
+		return
+	}
 	for _, v := range e.tb {
 		fmt.Printf(
 			"<name: '%s' row: %-4d - %s>\n",
@@ -67,11 +75,6 @@ func (e *Em) Table() {
 	}
 }
 
-// CountTable : Return the count of tables in the DB
-func (e Em) CountTable() int {
-	return len(e.tb)
-}
-
 // Fork : Fork the program to service into OS
 func (e *Em) Fork() {
 	fmt.Println(
@@ -86,8 +89,8 @@ func (e *Em) LoadDb() error {
 		return err
 	}
 	if info.Size() == 0 {
-		// return nil
-		e.testData()
+		return nil
+		// e.testData()
 	}
 	count, err := e.loadTbs() // Read tbs
 	if err != nil {
@@ -173,6 +176,7 @@ func (e Em) Exist(name string) (int, bool) {
 // ExecuteExpr : Execute command expression
 func (e *Em) ExecuteExpr(expr Expr) error {
 	// fmt.Println(expr.Stringer())
+	t := time.Now()
 	switch reflect.TypeOf(expr).Name() {
 	case "SeExpr":
 		se := expr.(SeExpr)
@@ -181,23 +185,27 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 			e.tb = append(e.tb, GlobalMem.NewTable(se.Table.Literal))
 			i = len(e.tb) - 1
 		}
-		e.tb[i].Insert(func(f []Token) []string {
+		result := e.tb[i].Insert(func(f []Token) []string {
 			var e []string
 			for _, v := range f {
 				e = append(e, v.Literal)
 			}
 			return e
 		}(se.F))
+		fmt.Println(result.Stringer())
 	case "UpExpr":
 		up := expr.(UpExpr)
 		i, exist := e.Exist(up.Table.Literal)
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		_, err := e.tb[i].Update(
-			up.P.Literal, up.N.Literal, up.V.Literal)
+		result, err := e.tb[i].Update(
+			up.P.Literal, up.S.Literal, up.N.Literal, up.V.Literal)
 		if err != nil {
 			return err
+		}
+		if result != nil {
+			fmt.Println(result.Stringer())
 		}
 	case "DeExpr":
 		de := expr.(DeExpr)
@@ -205,9 +213,12 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		err := e.tb[i].Delete(de.P.Literal)
+		result, err := e.tb[i].Delete(de.P.Literal)
 		if err != nil {
 			return err
+		}
+		if result != nil {
+			fmt.Println(result.Stringer())
 		}
 	case "GeExpr":
 		ge := expr.(GeExpr)
@@ -215,12 +226,19 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		rows, err := e.tb[i].Select(ge.F.Literal, ge.T.Literal)
+		r, err := e.tb[i].Select(ge.F.Literal, ge.T.Literal)
 		if err != nil {
 			return err
 		}
-		for _, v := range rows {
-			fmt.Println(v.Stringer())
+		if r != nil {
+			if reflect.TypeOf(r).Name() == "SingleResult" {
+				fmt.Println(r.(SingleResult).Stringer())
+			} else {
+				m := r.(MultipleResult)
+				for i := 0; uint64(i) < m.Rows; i++ {
+					fmt.Println(m.Offset[i], m.Data[i].Stringer())
+				}
+			}
 		}
 	case "GtExpr":
 		gt := expr.(GtExpr)
@@ -228,11 +246,16 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		err := e.tb[i].Selector(gt.S.Literal, gt.V.Literal)
+		r, err := e.tb[i].Selector(gt.S.Literal, gt.V.Literal)
 		if err != nil {
 			return err
 		}
+		m := r.(MultipleResult)
+		for i := 0; uint64(i) < m.Rows; i++ {
+			fmt.Println(m.Offset[i], m.Data[i].Stringer())
+		}
 	}
+	fmt.Println(time.Since(t))
 	return nil
 }
 

@@ -65,6 +65,7 @@ func main() {
 		return
 	}
 	if ForkMode { // Fork mode
+
 		GlobalEm.Fork()
 	} else {
 		repl() // Go to read prompt-line loop
@@ -114,7 +115,7 @@ func repl() {
 		} else if line == "license" {
 			license()
 		} else if line == "exit" || line == "quit" {
-			err := QuitMemory()
+			err := GlobalMem.QuitMemory()
 
 			if err != nil {
 				_, _ = fmt.Fprintln(os.Stderr, err.Error())
@@ -143,7 +144,6 @@ func eval(src string) {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println("OK")
 }
 
 // 'help' command to print help information

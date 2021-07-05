@@ -253,9 +253,6 @@ func verifyExpr(expr Expr) error {
 		if emptyValue(deExpr.Table) {
 			return errors.New("lost table")
 		}
-		if emptyValue(deExpr.P) {
-			return errors.New("lost position of delete limit")
-		}
 		return nil
 	case "GtExpr":
 		gtExpr := expr.(GtExpr)
