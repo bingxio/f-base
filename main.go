@@ -12,7 +12,8 @@ import (
 )
 
 // Message : Prompt information of command line
-const Message = "F-Base v0.0.1 * MADE AT May 26 2021 18:06:35"
+const Message = "F-Base %s * MADE AT May 26 2021 18:06:35\n"
+const Version = "v0.0.1"
 
 var (
 	DbPath   = ""                      // Database
@@ -31,7 +32,7 @@ var (
                   Em(Table, Exec, Fork)                // Back-end
                    |
                    v
-   Result   <-    Tb(SE, GE, UP, DE) <- Row <-> {F-Tree}
+   Result   <-    Tb(SE, GE, UP, DE) <- Row <-> {F-Tr}
      |
      v
    Terminal | Driver --> END
@@ -41,7 +42,7 @@ func main() {
 	arg := flag.Args()
 
 	// Must access the location
-	// of the database file
+	// of the database File
 	if len(arg) < 1 {
 		_, _ = fmt.Fprintln(os.Stderr, "lost database specified")
 		return
@@ -54,10 +55,10 @@ func main() {
 		return
 	}
 	GlobalEm = Em{ // Em set
-		db:   f.Name(),
-		file: f,
-		tb:   nil,
-		fork: ForkMode,
+		Db:   f.Name(),
+		File: f,
+		Tb:   nil,
+		Fork: ForkMode,
 	}
 	err = GlobalEm.LoadDb() // Load database
 	if err != nil {
@@ -65,8 +66,7 @@ func main() {
 		return
 	}
 	if ForkMode { // Fork mode
-
-		GlobalEm.Fork()
+		GlobalEm.ToFork()
 	} else {
 		repl() // Go to read prompt-line loop
 	}
@@ -74,7 +74,7 @@ func main() {
 
 // Read Prompt-Line Loop
 func repl() {
-	fmt.Println(Message)
+	fmt.Printf(Message, Version)
 	fmt.Println(GlobalEm.Stringer(dbInfo()))
 
 	c := make(chan os.Signal, 1)
@@ -115,8 +115,7 @@ func repl() {
 		} else if line == "license" {
 			license()
 		} else if line == "exit" || line == "quit" {
-			err := GlobalMem.QuitMemory()
-
+			err := GlobalMem.Write()
 			if err != nil {
 				_, _ = fmt.Fprintln(os.Stderr, err.Error())
 				continue
@@ -125,8 +124,22 @@ func repl() {
 			break
 		} else if line == "p" {
 			GlobalMem.Dissemble()
+		} else if line == "save" {
+			err := GlobalMem.Write()
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err.Error())
+				continue
+			}
+			_, _ = fmt.Fprintln(os.Stdout, "OK")
 		} else if line == "usage" {
 			usage()
+		} else if line == "reload" {
+			err := GlobalEm.Reload()
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err.Error())
+				continue
+			}
+			_, _ = fmt.Fprintln(os.Stdout, "OK")
 		} else {
 			eval(line)
 		}
@@ -166,16 +179,18 @@ func help() {
 	exit | quit -> Exit the program
 	license     -> Show license
 	p           -> Dissemble trees
-	usage       -> Show usage`)
+	usage       -> Show usage
+	save        -> Save buffer to DB File
+	reload      -> Reload buf`)
 }
 
-// Return the size of the data file
+// Return the size of the data File
 func dbInfo() string {
-	stat, err := GlobalEm.file.Stat()
+	stat, err := GlobalEm.File.Stat()
 	if err != nil {
 		return err.Error()
 	}
-	return fmt.Sprint(stat.Size()) // Return size of file
+	return fmt.Sprint(stat.Size()) // Return size of File
 }
 
 // Show license

@@ -17,13 +17,13 @@ func (r Row) Len() uint8 {
 
 // Stringer : stringer
 func (r Row) Stringer() string {
-	l := "<"
+	l := "("
 	for k, v := range r.Data {
 		l += v
 		if k+1 != len(r.Data) {
 			l += " "
 		}
 	}
-	l += ">"
+	l += ")"
 	return l
 }

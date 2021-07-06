@@ -16,31 +16,31 @@ import (
 )
 
 const (
-	port = 3742 // PORT of fork mode
+	port = 3742 // PORT of Fork mode
 	tbs  = 4    // Length of bytes for table count
 )
 
 // Em : Global database manager
 type Em struct {
-	db   string
-	file *os.File
-	tb   []Table
-	fork bool
+	Db   string
+	File *os.File
+	Tb   []Table
+	Fork bool
 }
 
 // Stringer return the string literal of Em
 func (e Em) Stringer(info string) string {
 	b := strings.Builder{}
-	b.WriteString(fmt.Sprintf("Db: '%s' %sB\n", e.db, info))
-	if len(e.tb) == 0 {
+	b.WriteString(fmt.Sprintf("Db: '%s' %sB\n", e.Db, info))
+	if len(e.Tb) == 0 {
 		b.WriteString("Tb: \n\tEmpty")
 	} else {
 		b.WriteString("Tb: \n")
 		b.WriteString(func() string {
 			l := ""
-			for i := 0; i < len(e.tb); i++ {
-				l += fmt.Sprintf("\t%d: '%s'", e.tb[i].At, e.tb[i].Name[:])
-				if i+1 != len(e.tb) {
+			for i := 0; i < len(e.Tb); i++ {
+				l += fmt.Sprintf("\t%d: '%s'", e.Tb[i].At, e.Tb[i].Name[:])
+				if i+1 != len(e.Tb) {
 					l += "\n"
 				}
 			}
@@ -52,13 +52,14 @@ func (e Em) Stringer(info string) string {
 
 // Table : 'table' command to print all of tables in the DB
 func (e *Em) Table() {
-	if len(e.tb) == 0 {
+	if len(e.Tb) == 0 {
 		fmt.Println("<empty table>")
 		return
 	}
-	for _, v := range e.tb {
+	for _, v := range e.Tb {
 		fmt.Printf(
-			"<name: '%s' row: %-4d - %s>\n",
+			"<at: %d name: '%s' row: %-4d - %s>\n",
+			v.At,
 			func(b [20]byte) string {
 				s := ""
 				for i := 0; i < len(b); i++ {
@@ -75,16 +76,31 @@ func (e *Em) Table() {
 	}
 }
 
-// Fork : Fork the program to service into OS
-func (e *Em) Fork() {
-	fmt.Println(
-		"F-Base runs in the background and monitors port:", port)
-	os.Exit(0)
+// ToFork : Fork the program to service into OS
+func (e *Em) ToFork() {
+	err := OpenApiServer()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+// Reload : Reload buffer
+func (e *Em) Reload() error {
+	f, err := os.OpenFile(DbPath, DbFlag, 0644)
+	if err != nil {
+		return err
+	}
+	e.File = f // Reopen
+	e.Tb = nil
+
+	GlobalMem.Tb = nil // Memory
+	GlobalMem.Tr = nil
+	return e.LoadDb()
 }
 
 // LoadDb : Load database
 func (e *Em) LoadDb() error {
-	info, err := e.file.Stat()
+	info, err := e.File.Stat()
 	if err != nil {
 		return err
 	}
@@ -112,12 +128,12 @@ func (e *Em) LoadDb() error {
 
 // LoadTbs : Returns the counts of table in DB
 func (e Em) loadTbs() (uint8, error) {
-	_, err := e.file.Seek(0, io.SeekStart)
+	_, err := e.File.Seek(0, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}
 	b := make([]byte, tbs) // Read
-	_, err = e.file.Read(b)
+	_, err = e.File.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -134,7 +150,7 @@ func (e Em) loadTbs() (uint8, error) {
 func (e *Em) loadTables(tbs uint8) error {
 	for tbs > 0 {
 		b := make([]byte, TableSize) // Read
-		_, err := e.file.Read(b)
+		_, err := e.File.Read(b)
 		if err != nil {
 			return err
 		}
@@ -144,7 +160,7 @@ func (e *Em) loadTables(tbs uint8) error {
 		if err != nil {
 			return err
 		}
-		e.tb = append(e.tb, t) // Append
+		e.Tb = append(e.Tb, t) // Append
 		tbs--
 	}
 	return nil
@@ -152,7 +168,7 @@ func (e *Em) loadTables(tbs uint8) error {
 
 // Exist : Data table exist
 func (e Em) Exist(name string) (int, bool) {
-	for i, v := range e.tb {
+	for i, v := range e.Tb {
 		if func(a, b []byte) bool {
 			for i := 0; i < len(b); {
 				// [124, 115, 154, 118, 175, 0, 0, 0, 0, 0]
@@ -182,24 +198,23 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		se := expr.(SeExpr)
 		i, exist := e.Exist(se.Table.Literal)
 		if !exist {
-			e.tb = append(e.tb, GlobalMem.NewTable(se.Table.Literal))
-			i = len(e.tb) - 1
+			e.Tb = append(e.Tb, GlobalMem.NewTable(se.Table.Literal))
+			i = len(e.Tb) - 1
 		}
-		result := e.tb[i].Insert(func(f []Token) []string {
+		_ = e.Tb[i].Insert(func(f []Token) []string {
 			var e []string
 			for _, v := range f {
 				e = append(e, v.Literal)
 			}
 			return e
 		}(se.F))
-		fmt.Println(result.Stringer())
 	case "UpExpr":
 		up := expr.(UpExpr)
 		i, exist := e.Exist(up.Table.Literal)
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		result, err := e.tb[i].Update(
+		result, err := e.Tb[i].Update(
 			up.P.Literal, up.S.Literal, up.N.Literal, up.V.Literal)
 		if err != nil {
 			return err
@@ -213,7 +228,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		result, err := e.tb[i].Delete(de.P.Literal)
+		result, err := e.Tb[i].Delete(de.P.Literal)
 		if err != nil {
 			return err
 		}
@@ -226,7 +241,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		r, err := e.tb[i].Select(ge.F.Literal, ge.T.Literal)
+		r, err := e.Tb[i].Select(ge.F.Literal, ge.T.Literal)
 		if err != nil {
 			return err
 		}
@@ -236,7 +251,7 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 			} else {
 				m := r.(MultipleResult)
 				for i := 0; uint64(i) < m.Rows; i++ {
-					fmt.Println(m.Offset[i], m.Data[i].Stringer())
+					fmt.Println(m.Offset[i], "\t", m.Data[i].Stringer())
 				}
 			}
 		}
@@ -246,27 +261,27 @@ func (e *Em) ExecuteExpr(expr Expr) error {
 		if !exist {
 			return errors.New("table does not exist")
 		}
-		r, err := e.tb[i].Selector(gt.S.Literal, gt.V.Literal)
+		r, err := e.Tb[i].Selector(gt.S.Literal, gt.V.Literal)
 		if err != nil {
 			return err
 		}
 		m := r.(MultipleResult)
 		for i := 0; uint64(i) < m.Rows; i++ {
-			fmt.Println(m.Offset[i], m.Data[i].Stringer())
+			fmt.Println(m.Offset[i], "\t", m.Data[i].Stringer())
 		}
 	}
 	fmt.Println(time.Since(t))
 	return nil
 }
 
-// Export some testing data written to DB file
+// Export some testing data written to DB File
 func (e *Em) testData() {
 	b := bytes.NewBuffer([]byte{}) // Tbs
 	err := gob.NewEncoder(b).Encode(uint8(2))
 	if err != nil {
 		panic(err.Error())
 	}
-	_, _ = e.file.Write(b.Bytes())
+	_, _ = e.File.Write(b.Bytes())
 	// fmt.Printf("Tbs: %p (%d)\n", b.Bytes(), b.Len())
 	// Table
 	//
@@ -275,14 +290,12 @@ func (e *Em) testData() {
 		{
 			Name:    [20]byte{117, 115, 101, 114, 115},
 			Created: uint32(time.Now().Unix()),
-			From:    304, // 4 + 150*2
 			Rows:    6525,
 			At:      1,
 		},
 		{
 			Name:    [20]byte{116, 111, 100, 111, 115},
 			Created: uint32(time.Now().Unix()),
-			From:    652804, // 4 + 150*2 + 100*6525
 			Rows:    9411,
 			At:      2,
 		},
@@ -292,8 +305,8 @@ func (e *Em) testData() {
 		if err != nil {
 			panic(err.Error())
 		}
-		_, _ = e.file.Write(b.Bytes())
-		_, _ = e.file.Write(make([]byte, TableSize-b.Len()))
+		_, _ = e.File.Write(b.Bytes())
+		_, _ = e.File.Write(make([]byte, TableSize-b.Len()))
 		// fmt.Printf("Table: %p (%d) >> %d\n",
 		// 	b.Bytes(), b.Len(), b.Len()+(TableSize-b.Len()))
 		b.Reset()
@@ -314,11 +327,11 @@ func (e *Em) testData() {
 		if err != nil {
 			panic(err.Error())
 		}
-		_, _ = e.file.Write(b.Bytes())
-		_, _ = e.file.Write(make([]byte, RowSize-b.Len()))
+		_, _ = e.File.Write(b.Bytes())
+		_, _ = e.File.Write(make([]byte, RowSize-b.Len()))
 		// fmt.Printf("Row(%d): %p (%d) >> %d\n",
 		// 	k+1, b.Bytes(), b.Len(), b.Len()+(RowSize-b.Len()))
 		b.Reset()
 	}
-	_, _ = e.file.Seek(0, io.SeekStart)
+	_, _ = e.File.Seek(0, io.SeekStart)
 }

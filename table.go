@@ -14,14 +14,13 @@ const TableSize = 150
 type Table struct {
 	Name    [20]byte
 	Created uint32
-	From    uint64
 	Rows    uint64
 	At      uint8
 }
 
 // Insert : Perform the add operation
 func (tb *Table) Insert(fields []string) Result {
-	tb.Rows += 1 // For Em table
+	tb.Rows += 1
 	return GlobalMem.Insert(tb.At-1, fields)
 }
 
@@ -104,4 +103,15 @@ func (tb *Table) Delete(p string) (Result, error) {
 		rp = i
 	}
 	return GlobalMem.Delete(tb.At-1, uint64(rp)), nil
+}
+
+// NameToString : Returns the name of string literal
+func (tb Table) NameToString() string {
+	n := ""
+	for _, v := range tb.Name {
+		if v != 0 {
+			n += string(v)
+		}
+	}
+	return n
 }

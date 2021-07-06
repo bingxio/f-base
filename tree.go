@@ -7,32 +7,32 @@ import (
 )
 
 /*
-    Tree: Structure:
+   Tr: Structure:
 
-            Tree(T)
-              |
-              v                    5 Leaf
-    NodeA,  NodeB,  NodeC..     1500 Data
-      |       |       |
-      v       v       v
-    LA, LB..  L..     L..
-      \       |      /
-              v
-            Leaf(L)                 3 Row
-              |
-              v
-            Rows(R)              100 Data
+           Tr(T)
+             |
+             v                    5 Leaf
+   NodeA,  NodeB,  NodeC..     1500 Data
+     |       |       |
+     v       v       v
+   LA, LB..  L..     L..
+     \       |      /
+             v
+           Leaf(L)                 3 Row
+             |
+             v
+           Rows(R)              100 Data
 
-    Table:
-        From 	uint64
-        At   	uint8
-        Rows 	uint64
+   Table:
+       From 	uint64
+       At   	uint8
+       Rows 	uint64
 
-    1. Rows / 100 =  Row
-    2. Row  / 3   =  Leaf
-    3. Leaf / 5   =  Node
+   1. Rows / 100 =  Row
+   2. Row  / 3   =  Leaf
+   3. Leaf / 5   =  Node
 
-        T -> Node
+       T -> Node
 */
 
 type Tree struct {
@@ -49,8 +49,8 @@ type Leaf struct {
 	Data [][]Row
 }
 
-// Stringer : For tree
-func (t Tree) Stringer(p int) string {
+// Counts : Returns the counts of leaf and data rows
+func (t Tree) Counts() (int, int) {
 	x := 0
 	y := 0
 	for _, v := range t.Node {
@@ -59,9 +59,15 @@ func (t Tree) Stringer(p int) string {
 			y += len(b.Data)
 		}
 	}
+	return x, y
+}
+
+// Stringer : For tree
+func (t Tree) Stringer(p int) string {
+	x, y := t.Counts()
 	return fmt.Sprintf(
 		"<name: '%s' node: %d leaf: %d rows: %d>",
-		GlobalEm.tb[p].Name,
+		GlobalEm.Tb[p].Name,
 		len(t.Node),
 		x,
 		y,

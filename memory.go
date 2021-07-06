@@ -29,17 +29,17 @@ var (
 */
 
 type Memory struct {
-	Tbs  uint    // Count of tbs
-	Tb   []Table // Simple table
-	Tree []Tree  // Trees of each table rows
+	Tbs uint    // Count of tbs
+	Tb  []Table // Simple table
+	Tr  []Tree  // Trees of each table rows
 }
 
 // Dissemble : Dis
 func (m Memory) Dissemble() {
-	if len(m.Tree) == 0 {
+	if len(m.Tr) == 0 {
 		fmt.Println("<empty tree>")
 	} else {
-		for k, v := range m.Tree { // Stringer
+		for k, v := range m.Tr { // Stringer
 			fmt.Println(v.Stringer(k))
 		}
 	}
@@ -47,23 +47,21 @@ func (m Memory) Dissemble() {
 
 // NewMemory : To new memory with em and bytes buffer
 func NewMemory(em Em) error {
-	GlobalMem.Tbs = uint(len(em.tb))
-	GlobalMem.Tb = em.tb
+	GlobalMem.Tbs = uint(len(em.Tb))
+	GlobalMem.Tb = em.Tb
 
 	var rows []Row
 
-	for i := 0; i < len(em.tb); i++ { // Buf
-		t := em.tb[i]
-		p := t.From
+	for i := 0; i < len(em.Tb); i++ { // Buf
+		t := em.Tb[i]
 		for j := 0; j < int(t.Rows); j++ { // Read rows
-			r, err := ReadRow(int64(p))
+			r, err := ReadRow()
 			if err != nil {
 				return err
 			}
 			rows = append(rows, *r) // Push
-			p += RowSize
 		}
-		l := len(rows) // Tree
+		l := len(rows) // Tr
 		if l > 100 {
 			row := DecimalPlaces(float64(l), 100)   // Rows
 			leaf := DecimalPlaces(float64(row), 3)  // Leaf
@@ -120,9 +118,9 @@ func NewMemory(em Em) error {
 					tp += 5
 				}
 			}
-			GlobalMem.Tree = append(GlobalMem.Tree, Tree{tn}) // T
+			GlobalMem.Tr = append(GlobalMem.Tr, Tree{tn}) // T
 		} else {
-			GlobalMem.Tree = append(GlobalMem.Tree, Tree{ // One leaf, one node
+			GlobalMem.Tr = append(GlobalMem.Tr, Tree{ // One leaf, one node
 				Node: []Node{
 					{
 						Leaf: []Leaf{
@@ -140,9 +138,9 @@ func NewMemory(em Em) error {
 }
 
 // ReadRow : Read bytes to row structure
-func ReadRow(p int64) (*Row, error) {
+func ReadRow() (*Row, error) {
 	b := make([]byte, RowSize)
-	_, err := GlobalEm.file.ReadAt(b, p)
+	_, err := GlobalEm.File.Read(b)
 	if err != nil {
 		return nil, err
 	}
@@ -155,12 +153,17 @@ func ReadRow(p int64) (*Row, error) {
 	return &r, nil
 }
 
-// QuitMemory : Clean cache and save buffer to file
-func (m Memory) QuitMemory() error {
-	n := GlobalEm.file.Name()
-	err := os.Remove(DbPath) // Delete
-	if err != nil {
-		return err
+// Write : Clean cache and save buffer to File
+func (m Memory) Write() error {
+	n := GlobalEm.File.Name()
+	_, err := GlobalEm.File.Stat()
+	if err == nil {
+		if err := os.Remove(n); err != nil { // Delete
+			return err
+		}
+		if err := GlobalEm.File.Close(); err != nil {
+			return err
+		}
 	}
 	f, err := os.OpenFile(n, DbFlag, 0644) // Create
 	if err != nil {
@@ -182,6 +185,9 @@ func (m Memory) QuitMemory() error {
 		_, _ = f.Write(make([]byte, TableSize-b.Len()))
 		b.Reset()
 	}
+
+	// fmt.Println(m.Tbs, m.Tb, m.Tr)
+
 	errC := make(chan string)
 	done := make(chan bool)
 	go func() {
@@ -197,7 +203,7 @@ func (m Memory) QuitMemory() error {
 				}
 			}
 		}
-		for _, v := range m.Tree { // T
+		for _, v := range m.Tr { // T
 			v.Iter(func(i int, n Node) { // N
 				n.Iter(func(i int, l Leaf) { l.Iter(rp) }) // L
 			})
@@ -208,8 +214,7 @@ func (m Memory) QuitMemory() error {
 	case err := <-errC:
 		fmt.Println("ERROR: ", err, "!!")
 	case <-done:
-		err = GlobalEm.file.Close() // Close
-		if err != nil {
+		if err := f.Close(); err != nil {
 			return err
 		}
 	}
@@ -234,39 +239,21 @@ func DecimalPlaces(raw, to float64) int {
 	return r
 }
 
-// CountRows : Return count of all rows in tables
-func (m Memory) CountRows() uint64 {
-	var p uint64
-	for _, v := range m.Tb {
-		p += v.Rows
-	}
-	return p
-}
-
-// GetBackOffset : Return the back offsets in tables of rows size
-func (m Memory) GetBackOffset() uint64 {
-	var p = uint64(tbs + (TableSize * (len(m.Tb) + 1))) // Used of create table
-	for _, v := range m.Tb {
-		p += v.Rows * RowSize
-	}
-	return p
-}
-
 // NewTable : Add new table and return it
 func (m *Memory) NewTable(name string) Table {
-	t := Table{
-		Name: func() [20]byte {
-			x := [20]byte{}
-			for i, v := range name {
-				if i >= 20 {
-					break
-				}
-				x[i] = byte(v)
+	f := func() [20]byte { // String to bytes
+		x := [20]byte{}
+		for i, v := range name {
+			if i >= 20 {
+				break
 			}
-			return x
-		}(),
+			x[i] = byte(v)
+		}
+		return x
+	}
+	t := Table{
+		Name:    f(),
 		Created: uint32(time.Now().Unix()),
-		From:    m.GetBackOffset(),
 		Rows:    0,
 		At:      uint8(len(m.Tb) + 1),
 	}
@@ -277,13 +264,13 @@ func (m *Memory) NewTable(name string) Table {
 
 // Insert : SE ? *E
 func (m *Memory) Insert(at uint8, fields []string) Result {
-	m.Tb[at].Rows += 1 // TODO: And update 'From' field
+	m.Tb[at].Rows += 1
 	w := Row{fields}
 	res := SingleResult{
 		Row:    w,
 		Offset: m.Tb[at].Rows,
 	}
-	if int(at) == len(m.Tree) { // New Tree
+	if int(at) == len(m.Tr) { // New Tr
 		r := []Row{
 			w,
 		}
@@ -293,10 +280,10 @@ func (m *Memory) Insert(at uint8, fields []string) Result {
 		n := []Node{
 			{l},
 		}
-		m.Tree = append(m.Tree, Tree{n})
+		m.Tr = append(m.Tr, Tree{n})
 	} else {
-		r := m.Tree[at].BackNode().BackLeaf().BackRows() // Back
-		*r = append(*r, w)                               // Rows
+		r := m.Tr[at].BackNode().BackLeaf().BackRows() // Back
+		*r = append(*r, w)                             // Rows
 	}
 	return res
 }
@@ -321,7 +308,7 @@ func (m *Memory) Selector(at, s uint8, v string) Result {
 			e(v)
 		}
 	}
-	t := m.Tree[at] // T
+	t := m.Tr[at] // T
 	t.Iter(func(i int, n Node) { // N
 		n.Iter(func(i int, l Leaf) { l.Iter(f) }) // L
 	})
@@ -338,7 +325,7 @@ func (m *Memory) SelectAll(at uint8) Result {
 			res.Offset = append(res.Offset, res.Rows)
 		}
 	}
-	t := m.Tree[at] // T
+	t := m.Tr[at] // T
 	t.Iter(func(i int, n Node) { // N
 		n.Iter(func(i int, l Leaf) {
 			l.Iter(f)
@@ -349,7 +336,7 @@ func (m *Memory) SelectAll(at uint8) Result {
 
 // SelectOne : GE ? <F>
 func (m *Memory) SelectOne(at uint8, p uint64) Result {
-	t := m.Tree[at]
+	t := m.Tr[at]
 	if p > m.Tb[at].Rows {
 		return nil
 	}
@@ -396,7 +383,7 @@ func (m *Memory) SelectRange(at uint8, fp, tp uint64) Result {
 			}
 		}
 	}
-	t := m.Tree[at] // T
+	t := m.Tr[at] // T
 	t.Iter(func(i int, n Node) { // N
 		if uint64(d) < tp {
 			n.Iter(func(i int, l Leaf) {
@@ -416,13 +403,14 @@ func (m *Memory) Update(at, sp uint8, n, v string, p uint64) Result {
 		return nil
 	}
 	row := r.(SingleResult)
+	if v != "" && sp < row.Row.Len() && row.Row.Data[sp-1] != v { // Not verify
+		return nil
+	}
 	if sp > row.Row.Len() { // S
-		return nil
+		row.Row.Data = append(row.Row.Data, n)
+	} else {
+		row.Row.Data[sp-1] = n // Set
 	}
-	if v != "" && row.Row.Data[sp-1] != v { // Not verify
-		return nil
-	}
-	row.Row.Data[sp-1] = n // Set
 	w := DecimalPlaces(float64(p), 1500)
 	if w != 0 {
 		w -= 1
@@ -436,7 +424,7 @@ func (m *Memory) Update(at, sp uint8, n, v string, p uint64) Result {
 			d += 1
 		}
 	}
-	t := m.Tree[at] // T
+	t := m.Tr[at] // T
 	t.Iter(func(i int, n Node) { // N
 		n.Iter(func(i int, l Leaf) { l.PointIter(f) })
 	}) // L
@@ -445,6 +433,7 @@ func (m *Memory) Update(at, sp uint8, n, v string, p uint64) Result {
 
 // Delete : DE ? <P>
 func (m *Memory) Delete(at uint8, p uint64) Result {
+	m.Tb[at].Rows -= 1
 	w := DecimalPlaces(float64(p), 1500)
 	if w != 0 {
 		w -= 1
@@ -465,11 +454,10 @@ func (m *Memory) Delete(at uint8, p uint64) Result {
 			l.Data[i] = dst
 		}
 	}
-	t := m.Tree[at] // T
+	t := m.Tr[at] // T
 	t.Iter(func(i int, n Node) { // N
 		n.Iter(func(i int, l Leaf) { l.OutPointIter(f) })
 	}) // L
-	m.Tb[at].Rows -= 1
 	return ModifyResult{Rows: 1}
 }
 
@@ -481,18 +469,22 @@ func (m *Memory) DeleteAll(at uint8) Result {
 	for i := 0; uint(i) < m.Tbs; i++ { // For Mem
 		if uint8(i) != at {
 			tb = append(tb, m.Tb[i])
-			tr = append(tr, m.Tree[i])
+			tr = append(tr, m.Tr[i])
 		}
 	}
-	m.Tbs -= 1
 	m.Tb = tb
-	m.Tree = tr
+	m.Tr = tr
+	m.Tbs -= 1
 	tb = nil                                // To nil
-	for i := 0; i < len(GlobalEm.tb); i++ { // For Em
+	for i := 0; i < len(GlobalEm.Tb); i++ { // For Em
 		if uint8(i) != at {
-			tb = append(tb, GlobalEm.tb[i])
+			tb = append(tb, GlobalEm.Tb[i])
 		}
 	}
-	GlobalEm.tb = tb
+	GlobalEm.Tb = tb
+	for j := 0; uint(j) < m.Tbs; j++ { // Reset At
+		m.Tb[j].At = uint8(j + 1)
+		GlobalEm.Tb[j].At = uint8(j + 1)
+	}
 	return ModifyResult{Rows: rows}
 }

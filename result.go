@@ -11,20 +11,20 @@ type Result interface {
 
 // MultipleResult : Many data query
 type MultipleResult struct {
-	Rows   uint64
-	Data   []Row
-	Offset []uint64
+	Rows   uint64   `json:"rows"`
+	Data   []Row    `json:"data"`
+	Offset []uint64 `json:"offset"`
 }
 
 // SingleResult : Single data
 type SingleResult struct {
-	Row    Row
-	Offset uint64
+	Row    Row    `json:"row"`
+	Offset uint64 `json:"offset"`
 }
 
 // ModifyResult : The rows of limit modified
 type ModifyResult struct {
-	Rows uint64
+	Rows uint64 `json:"rows"`
 }
 
 func (m MultipleResult) Stringer() string {
