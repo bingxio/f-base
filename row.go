@@ -7,7 +7,7 @@ const RowSize = 100
 
 // Row : Row in table
 type Row struct {
-	Data []string
+	Data []string `json:"data"`
 }
 
 // Len : Return length of data in row

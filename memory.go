@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -63,9 +62,9 @@ func NewMemory(em Em) error {
 		}
 		l := len(rows) // Tr
 		if l > 100 {
-			row := DecimalPlaces(float64(l), 100)   // Rows
-			leaf := DecimalPlaces(float64(row), 3)  // Leaf
-			node := DecimalPlaces(float64(leaf), 5) // Node
+			row := DecimalPlaces(float64(l), 100)   // R
+			leaf := DecimalPlaces(float64(row), 3)  // L
+			node := DecimalPlaces(float64(leaf), 5) // N
 
 			// log.Printf("- %d rows: %d leaf: %d node: %d\n", l, row, leaf, node)
 
@@ -79,45 +78,9 @@ func NewMemory(em Em) error {
 				}
 				tp += 1
 			}
-			var tl []Leaf // L
-			tp = 0
-			for p := 0; p < leaf; p++ {
-				if (tp + 3) > len(tr) {
-					var r [][]Row
-					for i := tp; i < len(tr); i++ {
-						r = append(r, tr[i])
-						tp++
-					}
-					tl = append(tl, Leaf{r})
-				} else {
-					tl = append(tl, Leaf{
-						Data: [][]Row{tr[tp], tr[tp+1], tr[tp+2]}, // 3
-					})
-					tp += 3
-				}
-			}
-			var tn []Node // N
-			tp = 0
-			if tl == nil {
-				return errors.New("unhandled error")
-			}
-			for p := 0; p < node; p++ {
-				if (tp + 5) > len(tl) {
-					var r []Leaf
-					for i := tp; i < len(tl); i++ {
-						r = append(r, tl[i])
-						tp++
-					}
-					tn = append(tn, Node{r})
-				} else {
-					tn = append(tn, Node{
-						Leaf: []Leaf{
-							tl[tp], tl[tp+1], tl[tp+2], tl[tp+3], tl[tp+4], // 5
-						},
-					})
-					tp += 5
-				}
-			}
+
+			tl, tp := BuildLeaf(tp, leaf, tr)             // L
+			tn := BuildNode(tp, node, tl)                 // N
 			GlobalMem.Tr = append(GlobalMem.Tr, Tree{tn}) // T
 		} else {
 			GlobalMem.Tr = append(GlobalMem.Tr, Tree{ // One leaf, one node
@@ -151,6 +114,52 @@ func ReadRow() (*Row, error) {
 		return nil, err
 	}
 	return &r, nil
+}
+
+// BuildLeaf : Build leaf
+func BuildLeaf(tp, leaf int, tr [][]Row) ([]Leaf, int) {
+	var tl []Leaf // L
+	tp = 0
+	for p := 0; p < leaf; p++ {
+		if (tp + 3) > len(tr) {
+			var r [][]Row
+			for i := tp; i < len(tr); i++ {
+				r = append(r, tr[i])
+				tp++
+			}
+			tl = append(tl, Leaf{r})
+		} else {
+			tl = append(tl, Leaf{
+				Data: [][]Row{tr[tp], tr[tp+1], tr[tp+2]}, // 3
+			})
+			tp += 3
+		}
+	}
+	return tl, tp
+}
+
+// BuildNode : Build node
+func BuildNode(tp, node int, tl []Leaf) []Node {
+	var tn []Node // N
+	tp = 0
+	for p := 0; p < node; p++ {
+		if (tp + 5) > len(tl) {
+			var r []Leaf
+			for i := tp; i < len(tl); i++ {
+				r = append(r, tl[i])
+				tp++
+			}
+			tn = append(tn, Node{r})
+		} else {
+			tn = append(tn, Node{
+				Leaf: []Leaf{
+					tl[tp], tl[tp+1], tl[tp+2], tl[tp+3], tl[tp+4], // 5
+				},
+			})
+			tp += 5
+		}
+	}
+	return tn
 }
 
 // Write : Clean cache and save buffer to File
